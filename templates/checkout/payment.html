@@ -1,0 +1,606 @@
+{% extends 'layouts/base.html' %}
+{% block title %}Pembayaran #{{ order.id }} — NexShop{% endblock %}
+
+{% block extra_css %}
+<style>
+  .payment-hero {
+    background: var(--primary);
+    padding: 44px 0 52px;
+    position: relative;
+    overflow: hidden;
+  }
+  .payment-hero::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left:0; right:0;
+    height: 28px;
+    background: var(--surface);
+    border-radius: 28px 28px 0 0;
+  }
+  .payment-hero h1 {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(1.8rem, 3.5vw, 2.5rem);
+    letter-spacing: -0.04em;
+    color: #fff; margin-bottom: 6px;
+  }
+  .payment-hero h1 span { color: var(--accent); }
+  .payment-hero p { color: rgba(255,255,255,0.45); font-size: 0.875rem; margin: 0; }
+
+  /* Steps */
+  .steps-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 36px;
+  }
+  .step-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: #AAA;
+  }
+  .step-item .dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: #F0F0EA;
+    border: 2px solid #E0E0D8;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 800; color: #BBB;
+  }
+  .step-item.done .dot  { background: #DCFCE7; border-color: #16A34A; color: #16A34A; }
+  .step-item.active .dot { background: var(--primary); border-color: var(--primary); color: var(--accent); }
+  .step-item.active { color: var(--primary); }
+  .step-line { width: 60px; height: 2px; background: #E8E8E2; margin: 0 4px; }
+
+  /* ── QRIS Card ── */
+  .qris-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    text-align: center;
+  }
+  .qris-header {
+    background: var(--primary);
+    padding: 20px;
+  }
+  .qris-header h6 {
+    font-family: var(--font-display);
+    font-weight: 700; font-size: 0.9rem;
+    color: var(--accent); margin: 0;
+  }
+  .qris-body { padding: 28px 24px; }
+
+  .qris-amount {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 2rem;
+    letter-spacing: -0.04em;
+    color: var(--primary);
+    margin-bottom: 6px;
+  }
+  .qris-ordid {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.78rem;
+    color: #AAA;
+    letter-spacing: 0.04em;
+    margin-bottom: 20px;
+  }
+
+  /* QR placeholder */
+  .qr-box {
+    width: 200px; height: 200px;
+    margin: 0 auto 20px;
+    border: 3px solid var(--primary);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    background: var(--white);
+    overflow: hidden;
+  }
+  .qr-box img {
+    width: 100%; height: 100%;
+    object-fit: contain;
+  }
+  .qr-box .qr-mock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    color: #333;
+  }
+  .qr-box .qr-mock i { font-size: 3.5rem; }
+  .qr-box .qr-mock span {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  /* Corner brackets for QR style */
+  .qr-box::before, .qr-box::after {
+    content: '';
+    position: absolute;
+    width: 20px; height: 20px;
+    border-color: var(--accent);
+    border-style: solid;
+  }
+  .qr-box::before {
+    top: 6px; left: 6px;
+    border-width: 3px 0 0 3px;
+    border-radius: 3px 0 0 0;
+  }
+  .qr-box::after {
+    bottom: 6px; right: 6px;
+    border-width: 0 3px 3px 0;
+    border-radius: 0 0 3px 0;
+  }
+
+  .payment-apps {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  .app-chip {
+    background: var(--surface-2);
+    border-radius: 7px;
+    padding: 5px 11px;
+    font-size: 0.75rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+
+  /* Timer */
+  .payment-timer {
+    background: #FFF7ED;
+    border: 1.5px solid #FED7AA;
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.82rem;
+    color: #92400E;
+    font-family: var(--font-display);
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+  .timer-val {
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #C2410C;
+  }
+
+  /* ── Upload Card ── */
+  .upload-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+  }
+  .upload-header {
+    padding: 16px 22px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .upload-header .step-no {
+    width: 26px; height: 26px;
+    background: var(--primary);
+    color: var(--accent);
+    border-radius: 50%;
+    font-family: var(--font-display);
+    font-weight: 800; font-size: 0.8rem;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .upload-header h6 {
+    font-family: var(--font-display);
+    font-weight: 700; font-size: 0.95rem; margin: 0;
+  }
+
+  /* Upload zone */
+  .upload-zone {
+    border: 2px dashed #D8D8D2;
+    border-radius: 14px;
+    background: #FAFAF8;
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: var(--primary);
+    background: var(--surface);
+  }
+  .upload-zone input[type="file"] {
+    position: absolute; inset: 0;
+    opacity: 0; cursor: pointer;
+    width: 100%; height: 100%;
+  }
+  .upload-icon {
+    width: 52px; height: 52px;
+    background: #EEEEE8;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; color: #888;
+    margin: 0 auto 12px;
+  }
+  .upload-zone h6 {
+    font-family: var(--font-display);
+    font-weight: 700; font-size: 0.88rem;
+    color: #333; margin-bottom: 4px;
+  }
+  .upload-zone p { font-size: 0.78rem; color: #AAA; margin: 0; }
+
+  /* Preview */
+  .preview-wrap {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #F0F0EA;
+    border: 1.5px solid var(--border);
+    display: none;
+  }
+  .preview-wrap img {
+    width: 100%; height: 200px;
+    object-fit: cover;
+  }
+  .preview-wrap .remove-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 28px; height: 28px;
+    background: rgba(220,38,38,0.9);
+    color: #fff;
+    border: none; border-radius: 7px;
+    cursor: pointer; font-size: 0.8rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Steps list */
+  .how-steps { list-style: none; padding: 0; margin: 0; }
+  .how-steps li {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid #F5F5F0;
+    font-size: 0.85rem;
+    color: #555;
+    line-height: 1.5;
+  }
+  .how-steps li:last-child { border-bottom: none; }
+  .how-steps li .sn {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: var(--accent);
+    font-family: var(--font-display);
+    font-weight: 800; font-size: 0.7rem;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; margin-top: 1px;
+  }
+
+  /* Submit button */
+  .btn-upload-submit {
+    width: 100%;
+    background: var(--primary);
+    color: var(--accent);
+    border: none;
+    border-radius: 11px;
+    padding: 14px;
+    font-family: var(--font-display);
+    font-weight: 700; font-size: 0.95rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    gap: 9px;
+    transition: all 0.18s;
+  }
+  .btn-upload-submit:hover { background: #222; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(10,10,10,0.14); }
+  .btn-upload-submit:disabled { background: #E8E8E2; color: #AAA; cursor: not-allowed; transform: none; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="payment-hero">
+  <div class="container position-relative" style="z-index:1;">
+    <h1>Halaman <span>Pembayaran</span></h1>
+    <p>Order #{{ order.id }} — Selesaikan pembayaran Anda</p>
+  </div>
+</div>
+
+<div class="container py-5">
+
+  <!-- Steps -->
+  <div class="steps-bar">
+    <div class="step-item done">
+      <span class="dot"><i class="bi bi-check2"></i></span>
+      <span class="d-none d-sm-inline">Keranjang</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-item done">
+      <span class="dot"><i class="bi bi-check2"></i></span>
+      <span class="d-none d-sm-inline">Checkout</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-item active">
+      <span class="dot">3</span>
+      <span class="d-none d-sm-inline">Pembayaran</span>
+    </div>
+    <div class="step-line"></div>
+    <div class="step-item">
+      <span class="dot">4</span>
+      <span class="d-none d-sm-inline">Selesai</span>
+    </div>
+  </div>
+
+  <div class="row g-4 align-items-start">
+
+    <!-- ════ Left: QRIS ════ -->
+    <div class="col-lg-5">
+      <div class="qris-card">
+        <div class="qris-header">
+          <h6><i class="bi bi-qr-code me-2"></i>QRIS — Scan & Bayar</h6>
+        </div>
+        <div class="qris-body">
+
+          <!-- Total amount -->
+          <p class="qris-amount">Rp {{ "{:,.0f}".format(order.total_harga) }}</p>
+          <p class="qris-ordid">ORDER #{{ '%05d'|format(order.id) }}</p>
+
+          <!-- QR Code placeholder -->
+          <div class="qr-box mx-auto">
+            {% if qris_image is defined and qris_image %}
+              <img src="{{ url_for('static', filename='qris/' + qris_image) }}" alt="QRIS Code"/>
+            {% else %}
+              <div class="qr-mock">
+                <i class="bi bi-qr-code-scan"></i>
+                <span>QRIS Code</span>
+              </div>
+            {% endif %}
+          </div>
+
+          <!-- Supported apps -->
+          <p style="font-size:0.75rem; color:#AAA; margin-bottom:10px;">Diterima oleh:</p>
+          <div class="payment-apps">
+            {% for app in ['GoPay', 'OVO', 'Dana', 'ShopeePay', 'LinkAja', 'BSI Mobile', 'BCA mobile', 'BRIMO'] %}
+            <span class="app-chip">{{ app }}</span>
+            {% endfor %}
+          </div>
+
+          <!-- Countdown timer -->
+          <div class="payment-timer">
+            <i class="bi bi-clock-history" style="font-size:1.1rem; flex-shrink:0;"></i>
+            <div>
+              Sisa Waktu Bayar: <span class="timer-val" id="countdown">14:59</span>
+            </div>
+          </div>
+
+          <!-- How to pay -->
+          <div style="text-align:left;">
+            <p style="font-family:var(--font-display); font-weight:700; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.07em; color:#AAA; margin-bottom:12px;">
+              Cara Pembayaran
+            </p>
+            <ul class="how-steps">
+              <li><span class="sn">1</span>Buka aplikasi dompet digital Anda</li>
+              <li><span class="sn">2</span>Pilih menu <strong>Bayar / Scan QR</strong></li>
+              <li><span class="sn">3</span>Scan QR Code di atas</li>
+              <li><span class="sn">4</span>Konfirmasi jumlah: <strong>Rp {{ "{:,.0f}".format(order.total_harga) }}</strong></li>
+              <li><span class="sn">5</span>Selesaikan pembayaran</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ Right: Upload Proof ════ -->
+    <div class="col-lg-7">
+
+      <!-- Order info box -->
+      <div style="background:var(--white); border:1px solid var(--border); border-radius:14px; padding:18px 20px; margin-bottom:20px;">
+        <div class="row g-3">
+          {% set info = [
+            ('bi-receipt-cutoff', 'No. Pesanan', '#%05d'|format(order.id) ),
+            ('bi-credit-card',    'Metode',      order.metode_pembayaran),
+            ('bi-currency-dollar','Total Bayar', 'Rp ' + '{:,.0f}'.format(order.total_harga)),
+            ('bi-clock-history',  'Status',       order.status)
+          ] %}
+          {% for icon, label, val in info %}
+          <div class="col-6">
+            <div style="font-size:0.72rem; color:#AAA; font-family:var(--font-display); font-weight:700; text-transform:uppercase; letter-spacing:0.07em; margin-bottom:3px;">
+              <i class="bi {{ icon }} me-1"></i>{{ label }}
+            </div>
+            <div style="font-family:var(--font-display); font-weight:700; font-size:0.9rem; color:var(--primary);">
+              {% if label == 'Status' %}
+                <span style="background:#FEF9C3; color:#854D0E; padding:3px 9px; border-radius:6px; font-size:0.82rem;">
+                  {{ val }}
+                </span>
+              {% else %}
+                {{ val }}
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Upload form -->
+      <div class="upload-card">
+        <div class="upload-header">
+          <span class="step-no">!</span>
+          <h6>Upload Bukti Pembayaran</h6>
+        </div>
+        <div class="p-4">
+
+          <div style="background:#DBEAFE; border:1.5px solid #BFDBFE; border-radius:10px; padding:12px 16px; margin-bottom:20px; font-size:0.83rem; color:#1E40AF; display:flex; gap:9px; align-items:flex-start;">
+            <i class="bi bi-info-circle-fill" style="flex-shrink:0; font-size:1rem; margin-top:1px;"></i>
+            <span>
+              Setelah melakukan pembayaran QRIS, upload screenshot atau foto bukti pembayaran Anda agar admin dapat memverifikasi transaksi.
+            </span>
+          </div>
+
+          <form
+            action="{{ url_for('checkout.upload_proof', order_id=order.id) }}"
+            method="POST"
+            enctype="multipart/form-data"
+            id="uploadForm"
+          >
+            <!-- Preview -->
+            <div class="preview-wrap mb-3" id="previewWrap">
+              <img id="previewImg" src="" alt="Preview"/>
+              <button type="button" class="remove-btn" onclick="removePreview()">
+                <i class="bi bi-x"></i>
+              </button>
+            </div>
+
+            <!-- Drop zone -->
+            <div class="upload-zone mb-3" id="uploadZone">
+              <input
+                type="file"
+                name="bukti_pembayaran"
+                id="proofFile"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onchange="handlePreview(this)"
+              />
+              <div class="upload-icon"><i class="bi bi-cloud-upload"></i></div>
+              <h6>Klik atau drag file di sini</h6>
+              <p>Screenshot/foto bukti transfer — JPG, PNG, WebP — Maks. 5 MB</p>
+            </div>
+
+            <div class="invalid-text d-none" id="fileError"
+                 style="font-size:0.8rem; color:#DC2626; margin-bottom:12px; align-items:center; gap:5px;">
+              <i class="bi bi-exclamation-circle-fill"></i>
+              <span id="fileErrorMsg"></span>
+            </div>
+
+            <button type="submit" class="btn-upload-submit" id="btnUpload">
+              <i class="bi bi-cloud-upload-fill"></i> Upload & Konfirmasi Pembayaran
+            </button>
+          </form>
+
+          <!-- Skip / pay later -->
+          <p style="text-align:center; margin-top:14px;">
+            <a href="{{ url_for('order.order_history') }}"
+               style="font-size:0.82rem; font-family:var(--font-display); font-weight:600; color:var(--text-muted); text-decoration:none;">
+              Upload nanti di halaman pesanan →
+            </a>
+          </p>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // ── Image preview ───────────────────────
+  function handlePreview(input) {
+    const errEl  = document.getElementById('fileError');
+    const errMsg = document.getElementById('fileErrorMsg');
+    errEl.style.display = 'none';
+
+    const file = input.files[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg','image/png','image/webp','image/gif'];
+    if (!validTypes.includes(file.type)) {
+      errMsg.textContent = 'Format tidak didukung. Gunakan JPG, PNG, atau WebP.';
+      errEl.style.display = 'flex';
+      input.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      errMsg.textContent = 'File terlalu besar. Maks. 5 MB.';
+      errEl.style.display = 'flex';
+      input.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('previewImg').src = e.target.result;
+      document.getElementById('previewWrap').style.display = 'block';
+      document.getElementById('uploadZone').style.display   = 'none';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removePreview() {
+    document.getElementById('proofFile').value = '';
+    document.getElementById('previewImg').src  = '';
+    document.getElementById('previewWrap').style.display = 'none';
+    document.getElementById('uploadZone').style.display  = 'block';
+  }
+
+  // Drag & drop
+  const zone = document.getElementById('uploadZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const inp = document.getElementById('proofFile');
+    if (e.dataTransfer.files.length) {
+      inp.files = e.dataTransfer.files;
+      handlePreview(inp);
+    }
+  });
+
+  // ── Form submit ────────────────────────
+  document.getElementById('uploadForm').addEventListener('submit', function(e) {
+    const file   = document.getElementById('proofFile').files[0];
+    const errEl  = document.getElementById('fileError');
+    const errMsg = document.getElementById('fileErrorMsg');
+    errEl.style.display = 'none';
+
+    if (!file) {
+      e.preventDefault();
+      errMsg.textContent = 'Pilih file bukti pembayaran terlebih dahulu.';
+      errEl.style.display = 'flex';
+      return;
+    }
+
+    const btn = document.getElementById('btnUpload');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Mengunggah…';
+  });
+
+  // ── Countdown timer ────────────────────
+  let totalSeconds = 15 * 60 - 1; // 14:59
+
+  function updateTimer() {
+    const m = Math.floor(totalSeconds / 60);
+    const s = totalSeconds % 60;
+    document.getElementById('countdown').textContent =
+      String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+    if (totalSeconds <= 0) {
+      document.getElementById('countdown').textContent = '00:00';
+      document.getElementById('countdown').style.color = '#DC2626';
+      return;
+    }
+    totalSeconds--;
+    setTimeout(updateTimer, 1000);
+  }
+  updateTimer();
+</script>
+{% endblock %}

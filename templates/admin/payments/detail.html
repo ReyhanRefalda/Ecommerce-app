@@ -1,0 +1,206 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block title %}Verifikasi #{{ '%05d'|format(order.id) }} — NexShop Admin{% endblock %}
+{% block page_title %}Verifikasi Pembayaran{% endblock %}
+{% block page_subtitle %}Order #{{ '%05d'|format(order.id) }} — {{ user.nama if user else '' }}{% endblock %}
+
+{% block breadcrumb %}
+  <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}" class="text-muted text-decoration-none">Admin</a></li>
+  <li class="breadcrumb-item"><a href="{{ url_for('payment_admin.index') }}" class="text-muted text-decoration-none">Pembayaran</a></li>
+  <li class="breadcrumb-item active text-muted">#{{ '%05d'|format(order.id) }}</li>
+{% endblock %}
+
+{% block page_actions %}
+  <a href="{{ url_for('payment_admin.index') }}"
+     style="border:1.5px solid #E8E8E2; border-radius:9px; padding:9px 16px; font-family:var(--font-display); font-weight:600; font-size:0.85rem; color:#444; text-decoration:none; display:inline-flex; align-items:center; gap:7px; background:#fff;">
+    <i class="bi bi-arrow-left"></i> Kembali
+  </a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .sb { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:7px; font-family:var(--font-display); font-weight:700; font-size:0.78rem; white-space:nowrap; }
+  .sb::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; opacity:0.7; }
+  .sb-waiting { background:#DBEAFE; color:#1E40AF; }
+
+  .detail-card { background:#fff; border:1px solid #E8E8E2; border-radius:16px; overflow:hidden; margin-bottom:20px; }
+  .detail-card-header { padding:16px 22px; border-bottom:1px solid #F0F0EA; display:flex; align-items:center; gap:10px; }
+  .detail-card-header h6 { font-family:var(--font-display); font-weight:700; font-size:0.95rem; margin:0; color:#0A0A0A; }
+
+  .info-row { display:flex; align-items:flex-start; padding:12px 0; border-bottom:1px solid #F5F5F0; gap:14px; }
+  .info-row:last-child { border-bottom:none; padding-bottom:0; }
+  .info-key { font-family:var(--font-display); font-weight:700; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.07em; color:#AAA; min-width:130px; flex-shrink:0; padding-top:2px; }
+  .info-val { font-size:0.9rem; color:#0A0A0A; flex:1; }
+
+  .proof-img-wrap { width:100%; border-radius:14px; overflow:hidden; background:#F5F5F0; border:2px solid #E8E8E2; position:relative; cursor:zoom-in; }
+  .proof-img-wrap img { width:100%; max-height:520px; object-fit:contain; display:block; transition:transform 0.3s; }
+  .proof-img-wrap:hover img { transform:scale(1.01); }
+  .proof-img-wrap .zoom-badge { position:absolute; bottom:10px; right:10px; background:rgba(10,10,10,0.65); color:#fff; font-size:0.72rem; font-family:var(--font-display); font-weight:600; padding:5px 10px; border-radius:7px; display:flex; align-items:center; gap:5px; pointer-events:none; }
+  .no-proof-wrap { width:100%; aspect-ratio:4/3; background:#F5F5F0; border:2px dashed #D0D0C8; border-radius:14px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; color:#CCC; font-size:3rem; }
+
+  .action-strip { display:flex; flex-wrap:wrap; gap:10px; padding:20px; border-top:1px solid #F0F0EA; background:#FAFAF8; border-radius:0 0 16px 16px; }
+  .abt { border:none; border-radius:10px; padding:12px 22px; font-family:var(--font-display); font-weight:700; font-size:0.88rem; cursor:pointer; display:inline-flex; align-items:center; gap:8px; text-decoration:none; transition:all 0.18s; }
+  .abt-accept { background:#DCFCE7; color:#166534; }
+  .abt-accept:hover { background:#BBF7D0; color:#166534; transform:translateY(-1px); }
+  .abt-reject { background:#FEE2E2; color:#991B1B; }
+  .abt-reject:hover { background:#FECACA; color:#991B1B; transform:translateY(-1px); }
+
+  .status-indicator { background:#DBEAFE; border:1px solid #BFDBFE; border-radius:12px; padding:16px 18px; display:flex; align-items:center; gap:14px; margin-bottom:20px; }
+  .si-icon { width:46px; height:46px; border-radius:12px; background:#fff; display:flex; align-items:center; justify-content:center; font-size:1.3rem; color:#1E40AF; flex-shrink:0; }
+  .si-title { font-family:var(--font-display); font-weight:700; font-size:0.9rem; color:#0A0A0A; }
+  .si-desc { font-size:0.78rem; color:#1E40AF; margin-top:2px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Status banner -->
+<div class="status-indicator">
+  <div class="si-icon"><i class="bi bi-hourglass-split"></i></div>
+  <div>
+    <div class="si-title">Menunggu Persetujuan Anda</div>
+    <div class="si-desc">Periksa bukti pembayaran di samping, lalu Approve atau Reject.</div>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- LEFT: Proof -->
+  <div class="col-lg-6">
+    <div class="detail-card">
+      <div class="detail-card-header">
+        <h6><i class="bi bi-image me-2" style="color:#888;"></i>Bukti Pembayaran</h6>
+      </div>
+      <div class="p-4">
+        {% if order.bukti_pembayaran %}
+          <div class="proof-img-wrap" onclick="openLightbox()">
+            <img src="{{ url_for('static', filename='uploads/' + order.bukti_pembayaran) }}" alt="Bukti Pembayaran"/>
+            <div class="zoom-badge"><i class="bi bi-zoom-in"></i> Perbesar</div>
+          </div>
+          <div class="d-flex align-items-center justify-content-between mt-3">
+            <span style="font-size:0.75rem; color:#AAA; font-family:var(--font-display);">
+              <i class="bi bi-paperclip me-1"></i>{{ order.bukti_pembayaran }}
+            </span>
+            <a href="{{ url_for('static', filename='uploads/' + order.bukti_pembayaran) }}" download
+               style="font-family:var(--font-display); font-weight:600; font-size:0.78rem; color:#2563EB; text-decoration:none;">
+              <i class="bi bi-download"></i> Unduh
+            </a>
+          </div>
+        {% else %}
+          <div class="no-proof-wrap">
+            <i class="bi bi-image-alt"></i>
+            <span style="font-size:0.85rem; color:#CCC;">Belum ada bukti pembayaran</span>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Approve / Reject -->
+      <div class="action-strip">
+        <form action="{{ url_for('payment_admin.approve', id=order.id) }}" method="POST"
+              onsubmit="return confirm('Setujui pembayaran ini? Status akan berubah ke Processing.')">
+          <button type="submit" class="abt abt-accept">
+            <i class="bi bi-check-circle-fill"></i> Approve Pembayaran
+          </button>
+        </form>
+        <form action="{{ url_for('payment_admin.reject', id=order.id) }}" method="POST"
+              onsubmit="return confirm('Tolak pembayaran ini? Tindakan ini tidak dapat dibatalkan.')">
+          <button type="submit" class="abt abt-reject">
+            <i class="bi bi-x-circle-fill"></i> Reject Pembayaran
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Order + Customer -->
+  <div class="col-lg-6">
+
+    <div class="detail-card">
+      <div class="detail-card-header">
+        <h6><i class="bi bi-receipt-cutoff" style="color:#888;"></i> Detail Pesanan</h6>
+      </div>
+      <div class="px-4 py-3">
+        <div class="info-row">
+          <span class="info-key">Order ID</span>
+          <span class="info-val"><code style="background:#F5F5F0; border:1px solid #E8E8E2; border-radius:5px; padding:2px 8px; font-size:0.82rem;">#{{ '%05d'|format(order.id) }}</code></span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Total Bayar</span>
+          <span class="info-val" style="font-family:var(--font-display); font-weight:800; font-size:1.15rem; letter-spacing:-0.03em;">
+            Rp {{ "{:,.0f}".format(order.total_harga) }}
+          </span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Metode</span>
+          <span class="info-val" style="font-family:var(--font-display); font-weight:700;">📱 {{ order.metode_pembayaran }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Status</span>
+          <span class="info-val"><span class="sb sb-waiting">{{ order.status }}</span></span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Upload Date</span>
+          <span class="info-val" style="font-size:0.875rem;">
+            {% if order.created_at %}{{ order.created_at.strftime('%d %B %Y, %H:%M') }} WIB{% else %}—{% endif %}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    {% if user %}
+    <div class="detail-card">
+      <div class="detail-card-header">
+        <h6><i class="bi bi-person-circle" style="color:#888;"></i> Informasi Customer</h6>
+      </div>
+      <div class="px-4 py-3">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div style="width:44px; height:44px; background:#0A0A0A; border-radius:11px; display:flex; align-items:center; justify-content:center; color:#E8FF47; font-size:1.1rem; flex-shrink:0;">
+            <i class="bi bi-person-fill"></i>
+          </div>
+          <div>
+            <div style="font-family:var(--font-display); font-weight:700; font-size:0.95rem; color:#0A0A0A;">{{ user.nama }}</div>
+            <div style="font-size:0.75rem; color:#888;">@{{ user.username }}</div>
+          </div>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Email</span>
+          <span class="info-val">{{ user.email }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">User ID</span>
+          <span class="info-val"><code style="background:#F5F5F0; border:1px solid #E8E8E2; border-radius:5px; padding:2px 8px; font-size:0.82rem;">#{{ user.id }}</code></span>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if order.bukti_pembayaran %}
+<div class="modal fade" id="lightboxModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content border-0" style="background:transparent; box-shadow:none;">
+      <div class="modal-body p-0 text-center position-relative">
+        <button data-bs-dismiss="modal"
+          style="position:absolute; top:-14px; right:-14px; width:36px; height:36px; background:rgba(255,255,255,0.92); border:none; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:10; box-shadow:0 4px 16px rgba(0,0,0,0.15); font-size:1rem;">
+          <i class="bi bi-x"></i>
+        </button>
+        <img src="{{ url_for('static', filename='uploads/' + order.bukti_pembayaran) }}" alt="Bukti Pembayaran"
+          style="max-width:100%; max-height:90vh; object-fit:contain; border-radius:12px;"/>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function openLightbox() {
+    {% if order.bukti_pembayaran %}
+    new bootstrap.Modal(document.getElementById('lightboxModal')).show();
+    {% endif %}
+  }
+</script>
+{% endblock %}

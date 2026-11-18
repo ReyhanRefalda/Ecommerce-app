@@ -1,0 +1,435 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block title %}Dashboard — NexShop Admin{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block page_subtitle %}Selamat datang kembali, {{ current_user.nama.split()[0] }} 👋{% endblock %}
+
+{% block breadcrumb %}
+  <li class="breadcrumb-item active text-muted">Dashboard</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── Status badges ── */
+  .sb { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:6px; font-weight:700; font-size:0.72rem; white-space:nowrap; }
+  .sb::before { content:''; width:5px; height:5px; border-radius:50%; background:currentColor; opacity:.7; }
+  .sb-pending    { background:#FEF9C3; color:#854D0E; }
+  .sb-waiting    { background:#DBEAFE; color:#1E40AF; }
+  .sb-processing { background:#EDE9FE; color:#5B21B6; }
+  .sb-completed  { background:#DCFCE7; color:#166534; }
+  .sb-rejected   { background:#FEE2E2; color:#991B1B; }
+
+  /* ── Notification alert ── */
+  .notif-alert {
+    background: linear-gradient(135deg,#1E3A8A,#1D4ED8);
+    border-radius:18px; padding:22px 28px;
+    display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+    margin-bottom:28px; box-shadow:0 8px 32px rgba(29,78,216,.25);
+    position:relative; overflow:hidden;
+  }
+  .notif-alert::before {
+    content:''; position:absolute; top:-30%; right:-10%;
+    width:300px; height:300px; background:rgba(255,255,255,.05);
+    border-radius:50%; pointer-events:none;
+  }
+  .notif-icon {
+    width:56px; height:56px; background:rgba(255,255,255,.15); border-radius:14px;
+    display:flex; align-items:center; justify-content:center; font-size:1.6rem; color:#fff;
+    flex-shrink:0; animation:bellRing 2.5s ease-in-out infinite; transform-origin:top center;
+  }
+  @keyframes bellRing {
+    0%,100%{transform:rotate(0)} 10%,30%{transform:rotate(-12deg)} 20%,40%{transform:rotate(12deg)} 50%{transform:rotate(0)}
+  }
+  .notif-num   { font-size:2.2rem; font-weight:800; letter-spacing:-.05em; color:#fff; line-height:1; }
+  .notif-lbl   { font-size:.78rem; color:rgba(255,255,255,.55); font-weight:600; margin-top:2px; }
+  .notif-desc  { color:rgba(255,255,255,.65); font-size:.875rem; line-height:1.6; flex:1; min-width:180px; }
+  .btn-notif   {
+    background:#fff; color:#1D4ED8; border:none; border-radius:10px;
+    padding:11px 20px; font-weight:800; font-size:.85rem; cursor:pointer;
+    display:inline-flex; align-items:center; gap:7px; text-decoration:none;
+    transition:all .18s; flex-shrink:0; white-space:nowrap;
+  }
+  .btn-notif:hover { background:#EFF6FF; color:#1D4ED8; transform:translateY(-1px); }
+
+  /* ── Stat grid ── */
+  .stat-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:16px; margin-bottom:28px; }
+  .stat-card {
+    background:var(--card-bg); border:1px solid var(--border); border-radius:16px;
+    padding:20px; display:flex; flex-direction:column; gap:12px;
+    transition:transform .18s,box-shadow .18s; text-decoration:none; position:relative; overflow:hidden;
+  }
+  .stat-card:hover { transform:translateY(-3px); box-shadow:var(--shadow-md); }
+  .stat-card::after {
+    content:''; position:absolute; bottom:0; right:0;
+    width:80px; height:80px; border-radius:50%; opacity:.06; transform:translate(20px,20px);
+  }
+  .sc-produk::after  { background:#6366F1; } .sc-kat::after   { background:#F59E0B; }
+  .sc-user::after    { background:#10B981; } .sc-order::after  { background:#3B82F6; }
+  .sc-verify::after  { background:#EF4444; } .sc-income::after { background:#8B5CF6; }
+
+  .stat-icon { width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:1.15rem; }
+  .sc-produk .stat-icon  { background:#EDE9FE; color:#6D28D9; }
+  .sc-kat    .stat-icon  { background:#FEF3C7; color:#D97706; }
+  .sc-user   .stat-icon  { background:#D1FAE5; color:#059669; }
+  .sc-order  .stat-icon  { background:#DBEAFE; color:#2563EB; }
+  .sc-verify .stat-icon  { background:#FEE2E2; color:#DC2626; }
+  .sc-income .stat-icon  { background:#F3E8FF; color:#7C3AED; }
+
+  .stat-num  { font-size:2rem; font-weight:800; letter-spacing:-.05em; color:var(--text-main); line-height:1; }
+  .stat-lbl  { font-size:.72rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; letter-spacing:.07em; }
+  .stat-sub  { font-size:.72rem; font-weight:600; display:flex; align-items:center; gap:4px; }
+  .up   { color:#16A34A; } .warn { color:#DC2626; }
+
+  /* ── Admin card ── */
+  .admin-card { background:var(--card-bg); border:1px solid var(--border); border-radius:16px; overflow:hidden; box-shadow:var(--shadow-sm); margin-bottom:20px; }
+  .admin-card-header { padding:15px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; background:#FAFAFA; }
+  .admin-card-header h6 { font-size:.875rem; font-weight:700; margin:0; color:var(--text-main); display:flex; align-items:center; gap:8px; }
+  .hdr-link { font-size:.78rem; font-weight:700; color:#2563EB; text-decoration:none; display:flex; align-items:center; gap:4px; }
+  .hdr-link:hover { color:#1D4ED8; }
+
+  /* ── Chart wrapper ── */
+  .chart-wrap { padding:20px; }
+
+  /* ── Recent orders table ── */
+  .rt { font-size:.835rem; }
+  .rt thead th { font-weight:700; font-size:.67rem; text-transform:uppercase; letter-spacing:.08em; color:var(--text-muted); background:#FAFAFA; border-bottom:1px solid var(--border); padding:10px 16px; white-space:nowrap; }
+  .rt tbody td { padding:12px 16px; border-bottom:1px solid #F5F5F5; vertical-align:middle; color:var(--text-sub); }
+  .rt tbody tr:last-child td { border-bottom:none; }
+  .rt tbody tr:hover { background:#FAFAFA; }
+  .oid { font-family:var(--font); font-weight:700; font-size:.8rem; background:#F5F5F0; border:1px solid var(--border); padding:3px 8px; border-radius:6px; color:#333; }
+
+  /* ── Top products ── */
+  .tp-item { display:flex; align-items:center; gap:12px; padding:11px 20px; border-bottom:1px solid #F5F5F5; }
+  .tp-item:last-child { border-bottom:none; }
+  .tp-rank { width:26px; height:26px; border-radius:7px; background:#F5F5F0; font-weight:800; font-size:.75rem; color:#666; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .tp-rank.gold   { background:#FEF9C3; color:#854D0E; }
+  .tp-rank.silver { background:#F3F4F6; color:#374151; }
+  .tp-rank.bronze { background:#FEF3C7; color:#92400E; }
+  .tp-name  { flex:1; font-size:.875rem; font-weight:600; color:var(--text-main); }
+  .tp-sold  { font-family:var(--font); font-weight:800; font-size:.875rem; color:var(--text-main); white-space:nowrap; }
+  .tp-bar   { height:4px; background:#E5E7EB; border-radius:4px; margin-top:3px; overflow:hidden; }
+  .tp-fill  { height:100%; background:var(--primary); border-radius:4px; }
+
+  /* ── Low stock ── */
+  .ls-item { display:flex; align-items:center; gap:11px; padding:11px 20px; border-bottom:1px solid #F5F5F5; }
+  .ls-item:last-child { border-bottom:none; }
+  .ls-img { width:38px; height:38px; border-radius:9px; background:#F5F5F0; border:1px solid var(--border); overflow:hidden; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .ls-img img { width:100%; height:100%; object-fit:cover; }
+  .ls-name { flex:1; font-size:.84rem; font-weight:600; color:var(--text-main); }
+  .ls-badge { background:#FEF9C3; color:#854D0E; font-weight:700; font-size:.7rem; padding:3px 9px; border-radius:6px; }
+
+  /* ── Activity feed ── */
+  .act-item { display:flex; align-items:flex-start; gap:12px; padding:12px 20px; border-bottom:1px solid #F5F5F5; }
+  .act-item:last-child { border-bottom:none; }
+  .act-dot { width:34px; height:34px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:.85rem; flex-shrink:0; }
+  .act-dot.order   { background:#DBEAFE; color:#2563EB; }
+  .act-dot.verify  { background:#DCFCE7; color:#16A34A; }
+  .act-dot.reject  { background:#FEE2E2; color:#DC2626; }
+  .act-dot.payment { background:#EDE9FE; color:#6D28D9; }
+  .act-content .act-title { font-size:.84rem; font-weight:600; color:var(--text-main); margin-bottom:2px; }
+  .act-content .act-time  { font-size:.72rem; color:var(--text-muted); }
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+<!-- ══ NOTIFICATION ALERT ══════════════════════════════════ -->
+{% if waiting_count > 0 %}
+<div class="notif-alert">
+  <div class="notif-icon"><i class="bi bi-bell-fill"></i></div>
+  <div>
+    <div class="notif-num">{{ waiting_count }}</div>
+    <div class="notif-lbl">Menunggu Verifikasi</div>
+  </div>
+  <p class="notif-desc">
+    Ada <strong style="color:#fff;">{{ waiting_count }} pembayaran QRIS</strong>
+    yang menunggu persetujuan Anda. Segera verifikasi agar pesanan dapat diproses.
+  </p>
+  <a href="{{ url_for('payment_admin.index') }}" class="btn-notif">
+    <i class="bi bi-eye-fill"></i> Lihat Pembayaran
+  </a>
+</div>
+{% endif %}
+
+<!-- ══ STAT CARDS (6 cards) ══════════════════════════════ -->
+<div class="stat-grid">
+
+  <a href="{{ url_for('admin_product.products') }}" class="stat-card sc-produk">
+    <div class="stat-icon"><i class="bi bi-box-seam-fill"></i></div>
+    <div><div class="stat-num">{{ total_products }}</div><div class="stat-lbl">Total Produk</div></div>
+    <div class="stat-sub up"><i class="bi bi-arrow-up-right"></i> Aktif</div>
+  </a>
+
+  <a href="{{ url_for('category_admin.index') }}" class="stat-card sc-kat">
+    <div class="stat-icon"><i class="bi bi-tags-fill"></i></div>
+    <div><div class="stat-num">{{ total_categories }}</div><div class="stat-lbl">Total Kategori</div></div>
+    <div class="stat-sub up"><i class="bi bi-arrow-up-right"></i> Aktif</div>
+  </a>
+
+  <a href="{{ url_for('user_admin.index') }}" class="stat-card sc-user">
+    <div class="stat-icon"><i class="bi bi-people-fill"></i></div>
+    <div><div class="stat-num">{{ total_users }}</div><div class="stat-lbl">Total Pelanggan</div></div>
+    <div class="stat-sub up"><i class="bi bi-arrow-up-right"></i> Terdaftar</div>
+  </a>
+
+  <a href="{{ url_for('order_admin.index') }}" class="stat-card sc-order">
+    <div class="stat-icon"><i class="bi bi-cart-check-fill"></i></div>
+    <div><div class="stat-num">{{ total_orders }}</div><div class="stat-lbl">Total Pesanan</div></div>
+    <div class="stat-sub up"><i class="bi bi-arrow-up-right"></i> Semua</div>
+  </a>
+
+  <a href="{{ url_for('payment_admin.index') }}" class="stat-card sc-verify">
+    <div class="stat-icon"><i class="bi bi-hourglass-split"></i></div>
+    <div>
+      <div class="stat-num" style="{{ 'color:#DC2626;' if waiting_count > 0 }}">{{ waiting_count }}</div>
+      <div class="stat-lbl">Waiting Verify</div>
+    </div>
+    {% if waiting_count > 0 %}
+      <div class="stat-sub warn"><i class="bi bi-exclamation-circle-fill"></i> Perlu aksi</div>
+    {% else %}
+      <div class="stat-sub up"><i class="bi bi-check-circle-fill"></i> Semua beres</div>
+    {% endif %}
+  </a>
+
+  <div class="stat-card sc-income" style="text-decoration:none; cursor:default;">
+    <div class="stat-icon"><i class="bi bi-cash-coin"></i></div>
+    <div>
+      <div class="stat-num" style="font-size:1.3rem;">
+        Rp {{ "{:,.0f}".format(total_pendapatan) }}
+      </div>
+      <div class="stat-lbl">Total Pendapatan</div>
+    </div>
+    <div class="stat-sub up"><i class="bi bi-check-circle-fill"></i> Order Selesai</div>
+  </div>
+
+</div>
+
+<!-- ══ ROW 1: Charts ═════════════════════════════════════ -->
+<div class="row g-4 mb-4">
+
+  <!-- Pendapatan Bulanan -->
+  <div class="col-lg-8">
+    <div class="admin-card">
+      <div class="admin-card-header">
+        <h6><i class="bi bi-bar-chart-line-fill" style="color:#6D28D9;"></i> Pendapatan Bulanan</h6>
+        <span style="font-size:.75rem; color:var(--text-muted);">Tahun ini (order Completed)</span>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="chartBulanan" height="120"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Distribusi Status (Doughnut) -->
+  <div class="col-lg-4">
+    <div class="admin-card" style="height:100%;">
+      <div class="admin-card-header">
+        <h6><i class="bi bi-pie-chart-fill" style="color:#2563EB;"></i> Status Pesanan</h6>
+      </div>
+      <div class="chart-wrap d-flex flex-column align-items-center">
+        <canvas id="chartStatus" width="220" height="220" style="max-width:220px;"></canvas>
+        <div style="margin-top:14px; font-size:.75rem; width:100%;">
+          {% set status_colors = {
+            'Pending Payment':'#FCA5A5',
+            'Waiting Verification':'#93C5FD',
+            'Processing':'#C4B5FD',
+            'Completed':'#6EE7B7',
+            'Rejected':'#F87171'
+          } %}
+          {% for s, cnt in status_counts.items() %}
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:3px 0; border-bottom:1px solid #F3F4F6;">
+            <span style="display:flex; align-items:center; gap:7px;">
+              <span style="width:10px; height:10px; border-radius:3px; background:{{ status_colors[s] }}; flex-shrink:0;"></span>
+              <span style="color:#374151; font-weight:500;">{{ s }}</span>
+            </span>
+            <strong style="color:#111827;">{{ cnt }}</strong>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ ROW 2: Top Products + Low Stock + Activity ══════ -->
+<div class="row g-2">
+
+  <!-- Top 5 Produk Terlaris -->
+  
+
+  <!-- Stok Menipis -->
+  <div class="col-lg-4">
+    <div class="admin-card">
+      <div class="admin-card-header">
+        <h6><i class="bi bi-exclamation-triangle-fill" style="color:#D97706;"></i> Stok Menipis</h6>
+        <a href="{{ url_for('admin_product.products') }}" class="hdr-link">Kelola <i class="bi bi-arrow-right"></i></a>
+      </div>
+      {% if low_stock %}
+        {% for prod in low_stock %}
+        <div class="ls-item">
+          <div class="ls-img">
+            {% if prod.gambar %}
+              <img src="{{ url_for('static', filename='uploads/' + prod.gambar) }}" alt="{{ prod.nama_produk }}"/>
+            {% else %}
+              <i class="bi bi-image-alt" style="color:#D1D5DB;"></i>
+            {% endif %}
+          </div>
+          <div class="ls-name">{{ prod.nama_produk[:24] }}{% if prod.nama_produk|length > 24 %}…{% endif %}</div>
+          <span class="ls-badge">{{ prod.stok }} sisa</span>
+        </div>
+        {% endfor %}
+      {% else %}
+        <div style="padding:32px; text-align:center; color:#16A34A; font-size:.875rem;">
+          <i class="bi bi-check-circle-fill" style="font-size:2rem; display:block; margin-bottom:8px;"></i>
+          Semua stok aman
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  
+
+</div>
+
+<!-- ══ ROW 3: Recent Orders ══════════════════════════════ -->
+<div class="admin-card">
+  <div class="admin-card-header">
+    <h6><i class="bi bi-receipt-cutoff" style="color:#888;"></i> Pesanan Terbaru</h6>
+    <a href="{{ url_for('order_admin.index') }}" class="hdr-link">Lihat semua <i class="bi bi-arrow-right"></i></a>
+  </div>
+  <div class="table-responsive">
+    <table class="table rt mb-0">
+      <thead>
+        <tr>
+          <th>Order ID</th><th>Customer</th><th>Total</th>
+          <th>Metode</th><th>Status</th><th>Tanggal</th><th style="text-align:center;">Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if recent_orders %}
+          {% for order, user in recent_orders %}
+          <tr>
+            <td><span class="oid">#{{ '%05d'|format(order.id) }}</span></td>
+            <td>
+              <div style="font-weight:600; font-size:.85rem; color:#0A0A0A;">{{ user.nama }}</div>
+              <div style="font-size:.72rem; color:#888;">{{ user.email }}</div>
+            </td>
+            <td style="font-weight:700; white-space:nowrap;">Rp {{ "{:,.0f}".format(order.total_harga) }}</td>
+            <td style="font-size:.82rem;">{% if order.metode_pembayaran == 'QRIS' %}📱{% else %}🚚{% endif %} {{ order.metode_pembayaran }}</td>
+            <td>
+              {% if order.status == 'Pending Payment' %}<span class="sb sb-pending">{{ order.status }}</span>
+              {% elif order.status == 'Waiting Verification' %}<span class="sb sb-waiting">{{ order.status }}</span>
+              {% elif order.status == 'Processing' %}<span class="sb sb-processing">{{ order.status }}</span>
+              {% elif order.status == 'Completed' %}<span class="sb sb-completed">{{ order.status }}</span>
+              {% elif order.status == 'Rejected' %}<span class="sb sb-rejected">{{ order.status }}</span>
+              {% endif %}
+            </td>
+            <td style="font-size:.8rem; color:#888; white-space:nowrap;">
+              {{ order.created_at | wib_date if order.created_at else '—' }}
+            </td>
+            <td style="text-align:center;">
+              <a href="{{ url_for('order_admin.detail', id=order.id) }}"
+                 style="font-size:.78rem; font-weight:700; color:#2563EB; text-decoration:none;">
+                <i class="bi bi-eye"></i>
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="7" style="text-align:center; padding:36px; color:#AAA;">Belum ada pesanan</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+/* ── Data dari Jinja2 ── */
+const labelBulan        = {{ label_bulan | tojson }};
+const pendapatanBulanan = {{ pendapatan_bulanan | tojson }};
+
+const statusLabels = {{ status_counts.keys() | list | tojson }};
+const statusData   = {{ status_counts.values() | list | tojson }};
+const statusColors = ['#FCA5A5','#93C5FD','#C4B5FD','#6EE7B7','#F87171'];
+
+/* ════════════════════════════════════════════════
+   CHART 1 — Pendapatan Bulanan (Bar)
+════════════════════════════════════════════════ */
+new Chart(document.getElementById('chartBulanan'), {
+  type: 'bar',
+  data: {
+    labels:   labelBulan,
+    datasets: [{
+      label:           'Pendapatan (Rp)',
+      data:            pendapatanBulanan,
+      backgroundColor: 'rgba(109,40,217,0.18)',
+      borderColor:     '#6D28D9',
+      borderWidth:     2,
+      borderRadius:    6,
+      hoverBackgroundColor: 'rgba(109,40,217,0.35)',
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => 'Rp ' + ctx.parsed.y.toLocaleString('id-ID')
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        grid: { color: 'rgba(0,0,0,0.04)' },
+        ticks: {
+          callback: v => 'Rp ' + (v >= 1000000
+            ? (v/1000000).toFixed(1) + 'jt'
+            : v.toLocaleString('id-ID')),
+          font: { size: 11 }
+        }
+      },
+      x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+    }
+  }
+});
+
+/* ════════════════════════════════════════════════
+   CHART 2 — Distribusi Status (Doughnut)
+════════════════════════════════════════════════ */
+new Chart(document.getElementById('chartStatus'), {
+  type: 'doughnut',
+  data: {
+    labels: statusLabels,
+    datasets: [{
+      data:            statusData,
+      backgroundColor: statusColors,
+      borderWidth:     2,
+      borderColor:     '#fff',
+      hoverOffset:     8,
+    }]
+  },
+  options: {
+    responsive: false,
+    cutout: '68%',
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` ${ctx.label}: ${ctx.parsed} pesanan`
+        }
+      }
+    }
+  }
+});
+</script>
+{% endblock %}

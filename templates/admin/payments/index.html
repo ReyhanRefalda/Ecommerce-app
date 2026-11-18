@@ -1,0 +1,248 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block title %}Verifikasi Pembayaran — NexShop Admin{% endblock %}
+{% block page_title %}Verifikasi Pembayaran{% endblock %}
+{% block page_subtitle %}Antrian pembayaran QRIS yang menunggu persetujuan{% endblock %}
+
+{% block breadcrumb %}
+  <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}" class="text-muted text-decoration-none">Admin</a></li>
+  <li class="breadcrumb-item active text-muted">Pembayaran</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .sb { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:6px; font-family:var(--font-display); font-weight:700; font-size:0.72rem; white-space:nowrap; }
+  .sb::before { content:''; width:5px; height:5px; border-radius:50%; background:currentColor; opacity:0.7; }
+  .sb-waiting { background:#DBEAFE; color:#1E40AF; }
+
+  .admin-card { background:#fff; border:1px solid #E8E8E2; border-radius:16px; overflow:hidden; }
+  .admin-card-header { padding:16px 22px; border-bottom:1px solid #F0F0EA; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  .admin-card-header h6 { font-family:var(--font-display); font-weight:700; font-size:0.95rem; margin:0; color:#0A0A0A; }
+
+  /* Queue stat banner */
+  .queue-banner {
+    background: linear-gradient(135deg, #0A0A0A 0%, #1a1a1a 100%);
+    border-radius: 16px;
+    padding: 22px 26px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .queue-banner .qb-icon {
+    width: 56px; height: 56px;
+    background: rgba(232,255,71,0.12);
+    border: 1.5px solid rgba(232,255,71,0.2);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.6rem; color: #E8FF47;
+    flex-shrink: 0;
+  }
+  .queue-banner .qb-num { font-family:var(--font-display); font-weight:800; font-size:2rem; color:#fff; letter-spacing:-0.04em; line-height:1; }
+  .queue-banner .qb-lbl { font-size:0.78rem; color:rgba(255,255,255,0.4); font-weight:600; text-transform:uppercase; letter-spacing:0.06em; margin-top:3px; }
+  .queue-banner .qb-desc { color:rgba(255,255,255,0.5); font-size:0.85rem; margin-left:auto; max-width:340px; line-height:1.6; }
+
+  /* Search */
+  .search-wrap { position:relative; }
+  .search-wrap .si { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#AAA; font-size:0.85rem; pointer-events:none; }
+  .search-input { border:1.5px solid #E8E8E2; border-radius:9px; padding:9px 14px 9px 36px; font-size:0.875rem; background:#FAFAF8; color:#0A0A0A; outline:none; font-family:var(--font-body); transition:border-color 0.2s, box-shadow 0.2s; width:240px; }
+  .search-input:focus { border-color:#0A0A0A; box-shadow:0 0 0 3px rgba(10,10,10,0.06); background:#fff; }
+  .act-btn { border:1.5px solid #E8E8E2; border-radius:7px; padding:5px 12px; font-size:0.78rem; font-family:var(--font-display); font-weight:600; color:#333; text-decoration:none; background:#fff; display:inline-flex; align-items:center; gap:4px; transition:all 0.15s; cursor:pointer; }
+  .act-btn:hover { background:#F5F5F0; border-color:#C0C0BA; color:#0A0A0A; }
+
+  /* Proof thumbnail */
+  .proof-thumb { width:54px; height:54px; border-radius:9px; object-fit:cover; border:1px solid #E8E8E2; cursor:pointer; transition:transform 0.2s, box-shadow 0.2s; }
+  .proof-thumb:hover { transform:scale(1.08); box-shadow:0 4px 16px rgba(0,0,0,0.12); }
+  .no-proof { width:54px; height:54px; border-radius:9px; background:#F5F5F0; border:1px dashed #D0D0C8; display:flex; align-items:center; justify-content:center; color:#CCC; font-size:1.2rem; }
+
+  /* Table */
+  .pay-table { font-size: 0.845rem; }
+  .pay-table thead th { font-family:var(--font-display); font-weight:700; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.08em; color:#888; background:#FAFAF8; border-bottom:1px solid #EAEAE4; padding:11px 16px; white-space:nowrap; }
+  .pay-table tbody td { padding:13px 16px; border-bottom:1px solid #F5F5F0; vertical-align:middle; }
+  .pay-table tbody tr:last-child td { border-bottom:none; }
+  .pay-table tbody tr:hover { background:#FAFAF8; }
+  .order-id-chip { font-family:var(--font-display); font-weight:700; font-size:0.8rem; background:#F5F5F0; border:1px solid #E8E8E2; padding:3px 9px; border-radius:6px; color:#333; }
+
+  /* Action buttons */
+  .btn-action { border:1.5px solid #E8E8E2; border-radius:7px; padding:6px 13px; font-size:0.78rem; font-family:var(--font-display); font-weight:700; color:#333; text-decoration:none; background:#fff; display:inline-flex; align-items:center; gap:5px; transition:all 0.15s; cursor:pointer; }
+  .btn-action:hover { background:#F5F5F0; border-color:#C0C0BA; }
+  .btn-approve { background:#DCFCE7; color:#166534; border-color:#BBF7D0; }
+  .btn-approve:hover { background:#BBF7D0; color:#166534; }
+  .btn-reject { background:#FEE2E2; color:#991B1B; border-color:#FECACA; }
+  .btn-reject:hover { background:#FECACA; color:#991B1B; }
+  .btn-view { background:#DBEAFE; color:#1E40AF; border-color:#BFDBFE; }
+  .btn-view:hover { background:#BFDBFE; color:#1E40AF; }
+
+  /* Pagination */
+  .pag-btn { width:34px; height:34px; border-radius:8px; border:1.5px solid #E8E8E2; background:#fff; font-family:var(--font-display); font-weight:600; font-size:0.8rem; color:#555; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none; transition:all 0.15s; }
+  .pag-btn:hover { background:#F5F5F0; border-color:#C0C0BA; color:#0A0A0A; }
+  .pag-btn.active { background:#0A0A0A; border-color:#0A0A0A; color:#E8FF47; }
+  .pag-btn.disabled { opacity:0.4; pointer-events:none; }
+
+  /* Empty state */
+  .tbl-empty { padding:64px 24px; text-align:center; }
+  .tbl-empty .ei { font-size:3.2rem; opacity:0.18; margin-bottom:14px; }
+  .tbl-empty h6 { font-family:var(--font-display); font-weight:700; margin-bottom:5px; }
+  .tbl-empty p { font-size:0.82rem; color:#888; margin:0; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Queue banner ── -->
+<div class="queue-banner">
+  <div class="qb-icon"><i class="bi bi-hourglass-split"></i></div>
+  <div>
+    <div class="qb-num">{{ total }}</div>
+    <div class="qb-lbl">Menunggu Verifikasi</div>
+  </div>
+  <p class="qb-desc">
+    Daftar ini hanya menampilkan pembayaran <strong style="color:rgba(255,255,255,0.7);">QRIS</strong>
+    dengan status <strong style="color:rgba(255,255,255,0.7);">Waiting Verification</strong>.
+    Setelah disetujui atau ditolak, order otomatis hilang dari daftar ini.
+  </p>
+</div>
+
+<div class="admin-card">
+
+  <div class="admin-card-header">
+    <h6><i class="bi bi-shield-check-fill me-2" style="color:#888;"></i>Antrian Verifikasi</h6>
+    <form method="GET" action="{{ url_for('payment_admin.index') }}" class="d-flex align-items-center gap-2">
+      <div class="search-wrap">
+        <i class="bi bi-search si"></i>
+        <input type="text" name="search" class="search-input" placeholder="Cari order, nama, email…" value="{{ search }}"/>
+      </div>
+      <button type="submit" class="act-btn"><i class="bi bi-search"></i></button>
+      {% if search %}
+      <a href="{{ url_for('payment_admin.index') }}" class="act-btn"><i class="bi bi-x"></i></a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table pay-table mb-0">
+      <thead>
+        <tr>
+          <th style="width:100px;">Order ID</th>
+          <th>Customer</th>
+          <th style="width:80px; text-align:center;">Bukti</th>
+          <th style="width:140px;">Upload Date</th>
+          <th style="width:220px; text-align:center;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if rows %}
+          {% for order, user in rows %}
+          <tr>
+            <td><span class="order-id-chip">#{{ '%05d'|format(order.id) }}</span></td>
+            <td>
+              <div style="font-weight:600; color:#0A0A0A; font-size:0.875rem;">{{ user.nama }}</div>
+              <div style="font-size:0.75rem; color:#888;">{{ user.email }}</div>
+            </td>
+            <td style="text-align:center;">
+              {% if order.bukti_pembayaran %}
+                <img src="{{ url_for('static', filename='uploads/' + order.bukti_pembayaran) }}"
+                     class="proof-thumb" alt="Bukti #{{ order.id }}"
+                     onclick="openPreview('{{ url_for('static', filename='uploads/' + order.bukti_pembayaran) }}')"
+                     title="Klik untuk perbesar"/>
+              {% else %}
+                <div class="no-proof mx-auto"><i class="bi bi-image-alt"></i></div>
+              {% endif %}
+            </td>
+            <td style="font-size:0.8rem; color:#888; white-space:nowrap;">
+              {% if order.created_at %}
+                {{ order.created_at.strftime('%d %b %Y') }}<br>
+                <span style="font-size:0.72rem;">{{ order.created_at.strftime('%H:%M') }} WIB</span>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              <div class="d-flex gap-1 justify-content-center flex-wrap">
+                <a href="{{ url_for('payment_admin.detail', id=order.id) }}" class="btn-action btn-view">
+                  <i class="bi bi-eye"></i> Lihat
+                </a>
+                <form action="{{ url_for('payment_admin.approve', id=order.id) }}" method="POST" style="margin:0;"
+                      onsubmit="return confirm('Setujui pembayaran order #{{ '%05d'|format(order.id) }}?')">
+                  <button type="submit" class="btn-action btn-approve">
+                    <i class="bi bi-check2"></i> Approve
+                  </button>
+                </form>
+                <form action="{{ url_for('payment_admin.reject', id=order.id) }}" method="POST" style="margin:0;"
+                      onsubmit="return confirm('Tolak pembayaran order #{{ '%05d'|format(order.id) }}?')">
+                  <button type="submit" class="btn-action btn-reject">
+                    <i class="bi bi-x"></i> Reject
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="5">
+            <div class="tbl-empty">
+              <div class="ei"><i class="bi bi-check2-circle"></i></div>
+              <h6>Tidak ada pembayaran menunggu</h6>
+              <p>
+                {% if search %}
+                  Tidak ditemukan hasil untuk "{{ search }}".
+                {% else %}
+                  Semua pembayaran QRIS sudah diverifikasi. Kerja bagus!
+                {% endif %}
+              </p>
+            </div>
+          </td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if total_pages > 1 %}
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 px-4 py-3" style="border-top:1px solid #F0F0EA;">
+    <span style="font-size:0.8rem; color:#888;">
+      Halaman <strong style="color:#333; font-family:var(--font-display);">{{ page }}</strong>
+      dari <strong style="color:#333; font-family:var(--font-display);">{{ total_pages }}</strong>
+    </span>
+    <div class="d-flex gap-1">
+      <a href="{{ url_for('payment_admin.index', page=page-1, search=search) if page > 1 else '#' }}"
+         class="pag-btn {{ 'disabled' if page <= 1 }}"><i class="bi bi-chevron-left" style="font-size:0.7rem;"></i></a>
+      {% for p in range(1, total_pages + 1) %}
+        {% if p == page or (p >= page-2 and p <= page+2) or p == 1 or p == total_pages %}
+          <a href="{{ url_for('payment_admin.index', page=p, search=search) }}" class="pag-btn {{ 'active' if p == page }}">{{ p }}</a>
+        {% elif p == page-3 or p == page+3 %}
+          <span class="pag-btn disabled">…</span>
+        {% endif %}
+      {% endfor %}
+      <a href="{{ url_for('payment_admin.index', page=page+1, search=search) if page < total_pages else '#' }}"
+         class="pag-btn {{ 'disabled' if page >= total_pages }}"><i class="bi bi-chevron-right" style="font-size:0.7rem;"></i></a>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Image preview modal -->
+<div class="modal fade" id="previewModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0" style="background:transparent; box-shadow:none;">
+      <div class="modal-body p-0 text-center position-relative">
+        <button data-bs-dismiss="modal"
+          style="position:absolute; top:-14px; right:-14px; width:36px; height:36px; background:rgba(255,255,255,0.92); border:none; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:10; box-shadow:0 4px 16px rgba(0,0,0,0.15); font-size:1rem;">
+          <i class="bi bi-x"></i>
+        </button>
+        <img id="previewModalImg" src="" alt="Bukti Pembayaran"
+          style="max-width:100%; max-height:85vh; object-fit:contain; border-radius:12px;"/>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function openPreview(src) {
+    document.getElementById('previewModalImg').src = src;
+    new bootstrap.Modal(document.getElementById('previewModal')).show();
+  }
+</script>
+{% endblock %}

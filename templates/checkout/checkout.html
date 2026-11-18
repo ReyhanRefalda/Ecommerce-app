@@ -1,0 +1,772 @@
+{% extends 'layouts/base.html' %}
+{% block title %}Checkout — NexShop{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ════════════════════════════════════════════════════════════
+   DESIGN TOKENS
+════════════════════════════════════════════════════════════ */
+:root {
+  --dk:  #0A0A0A;
+  --ac:  #E8FF47;
+  --bd:  #E5E7EB;
+  --sf:  #F9FAFB;
+  --mu:  #6B7280;
+  --rd:  14px;
+  --fn:  inherit;
+}
+
+/* ════════════════════════════════════════════════════════════
+   HERO
+════════════════════════════════════════════════════════════ */
+.ck-hero {
+  background: var(--dk);
+  padding: 44px 0 58px;
+  position: relative;
+  overflow: hidden;
+}
+.ck-hero::before {
+  content: '';
+  position: absolute; top: -40%; right: -15%;
+  width: 420px; height: 420px;
+  background: radial-gradient(circle, rgba(232,255,71,.08) 0%, transparent 65%);
+  pointer-events: none;
+}
+.ck-hero::after {
+  content: '';
+  position: absolute; bottom: -1px; left: 0; right: 0;
+  height: 32px; background: #F4F5F7;
+  border-radius: 32px 32px 0 0;
+}
+.ck-hero h1 {
+  font-weight: 800; font-size: clamp(1.8rem,3.5vw,2.6rem);
+  letter-spacing: -.04em; color: #fff; margin-bottom: 6px;
+  position: relative; z-index: 1;
+}
+.ck-hero h1 em { color: var(--ac); font-style: normal; }
+.ck-hero p {
+  color: rgba(255,255,255,.45); font-size: .875rem; margin: 0;
+  position: relative; z-index: 1;
+}
+
+/* ════════════════════════════════════════════════════════════
+   BREADCRUMB — zero product.* references
+════════════════════════════════════════════════════════════ */
+.ck-bc {
+  display: flex; align-items: center; flex-wrap: wrap;
+  gap: 6px; font-size: .8rem; color: #9CA3AF; margin-bottom: 28px;
+}
+.ck-bc a { color: #9CA3AF; text-decoration: none; transition: color .15s; }
+.ck-bc a:hover { color: var(--dk); }
+.ck-bc .sep { opacity: .4; }
+.ck-bc .cur { color: var(--dk); font-weight: 600; }
+
+/* ════════════════════════════════════════════════════════════
+   SOURCE BADGE
+════════════════════════════════════════════════════════════ */
+.src-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  padding: 7px 16px; border-radius: 100px;
+  font-size: .74rem; font-weight: 700; margin-bottom: 24px;
+}
+.src-buynow { background: rgba(232,255,71,.12); border: 1.5px solid rgba(232,255,71,.3); color: var(--dk); }
+.src-cart   { background: #EEF2FF; border: 1.5px solid #C7D2FE; color: #3730A3; }
+
+/* ════════════════════════════════════════════════════════════
+   STEPS
+════════════════════════════════════════════════════════════ */
+.steps {
+  display: flex; align-items: center;
+  justify-content: center; margin-bottom: 36px;
+}
+.s-item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: .8rem; font-weight: 600; color: #9CA3AF;
+}
+.s-item .dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: #F3F4F6; border: 2px solid var(--bd);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .72rem; font-weight: 800; color: #9CA3AF; flex-shrink: 0;
+}
+.s-item.done .dot   { background: #DCFCE7; border-color: #16A34A; color: #16A34A; }
+.s-item.active .dot { background: var(--dk); border-color: var(--dk); color: var(--ac); }
+.s-item.active      { color: var(--dk); }
+.s-line { width: 52px; height: 2px; background: var(--bd); margin: 0 4px; }
+
+/* ════════════════════════════════════════════════════════════
+   SECTION CARD
+════════════════════════════════════════════════════════════ */
+.ck-sec { background: #fff; border: 1px solid var(--bd); border-radius: 18px; overflow: hidden; margin-bottom: 20px; }
+.ck-sec-hd {
+  padding: 15px 20px; border-bottom: 1px solid var(--bd);
+  display: flex; align-items: center; gap: 10px;
+}
+.ck-no {
+  width: 26px; height: 26px; background: var(--dk); color: var(--ac);
+  border-radius: 50%; font-size: .76rem; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.ck-sec-hd h6 { font-weight: 700; font-size: .9rem; margin: 0; color: var(--dk); }
+.ck-sec-hd .hd-right {
+  margin-left: auto; font-size: .75rem; color: #9CA3AF; font-weight: 600;
+}
+.ck-sec-bd { padding: 0 20px; }
+
+/* ════════════════════════════════════════════════════════════
+   ITEM ROW
+   All data via item.product.* — zero standalone product refs
+════════════════════════════════════════════════════════════ */
+.item-row {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 16px 0; border-bottom: 1px solid #F3F4F6;
+}
+.item-row:last-child { border-bottom: none; }
+
+/* thumbnail */
+.item-thumb {
+  width: 68px; height: 68px; border-radius: 11px;
+  background: var(--sf); border: 1px solid var(--bd);
+  overflow: hidden; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.item-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.item-thumb-ph  { font-size: 1.5rem; color: #D1D5DB; }
+
+/* info */
+.item-info { flex: 1; min-width: 0; }
+.item-cat  { font-size: .65rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #9CA3AF; margin-bottom: 3px; }
+.item-name { font-weight: 700; font-size: .88rem; color: var(--dk); line-height: 1.35; margin-bottom: 6px; word-break: break-word; }
+.item-unit-price { font-size: .78rem; color: var(--mu); }
+
+/* ── qty picker inside item row ── */
+.item-qty-row {
+  display: flex; align-items: center; gap: 10px;
+  margin-top: 8px; flex-wrap: wrap;
+}
+.qty-ctrl {
+  display: inline-flex; align-items: stretch;
+  border: 1.5px solid var(--dk); border-radius: 8px;
+  overflow: hidden; height: 32px;
+}
+.qty-ctrl button {
+  width: 32px; background: #fff; border: none; cursor: pointer;
+  font-size: .95rem; color: var(--dk);
+  display: flex; align-items: center; justify-content: center;
+  transition: background .12s; flex-shrink: 0;
+}
+.qty-ctrl button:hover:not(:disabled) { background: #F3F4F6; }
+.qty-ctrl button:disabled { opacity: .3; cursor: not-allowed; }
+.qty-ctrl input {
+  width: 46px; text-align: center;
+  border: none; border-left: 1px solid var(--bd); border-right: 1px solid var(--bd);
+  background: #fff; font-weight: 700; font-size: .88rem; color: var(--dk);
+  font-family: inherit; outline: none;
+  -moz-appearance: textfield;
+}
+.qty-ctrl input::-webkit-inner-spin-button,
+.qty-ctrl input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+.item-subtotal-inline {
+  font-weight: 800; font-size: .9rem; color: var(--dk);
+  letter-spacing: -.02em; white-space: nowrap;
+}
+
+/* stock warning */
+.stock-warn {
+  font-size: .72rem; color: #DC2626; font-weight: 600;
+  display: none; align-items: center; gap: 4px; margin-top: 4px;
+}
+.stock-warn.show { display: flex; }
+
+/* right-side subtotal (keeps right-aligned on wider screens) */
+.item-right {
+  display: flex; flex-direction: column; align-items: flex-end;
+  flex-shrink: 0; gap: 4px; padding-top: 2px;
+}
+
+/* ════════════════════════════════════════════════════════════
+   PAYMENT METHOD
+════════════════════════════════════════════════════════════ */
+.pm-lbl { display: block; cursor: pointer; margin-bottom: 10px; }
+.pm-lbl:last-child { margin-bottom: 0; }
+.pm-lbl input[type="radio"] { display: none; }
+.pm-card {
+  border: 2px solid var(--bd); border-radius: 12px; padding: 15px 18px;
+  display: flex; align-items: center; gap: 14px;
+  transition: all .15s; background: #fff;
+}
+.pm-lbl input[type="radio"]:checked + .pm-card {
+  border-color: var(--dk); background: var(--sf);
+  box-shadow: 0 0 0 3px rgba(10,10,10,.06);
+}
+.pm-icon {
+  width: 48px; height: 48px; border-radius: 11px; background: var(--sf);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; flex-shrink: 0; transition: background .15s;
+}
+.pm-lbl input[type="radio"]:checked + .pm-card .pm-icon { background: var(--ac); }
+.pm-title { font-weight: 700; font-size: .9rem; color: var(--dk); margin-bottom: 2px; }
+.pm-desc  { font-size: .76rem; color: var(--mu); line-height: 1.45; }
+.pm-check {
+  margin-left: auto; width: 20px; height: 20px; border-radius: 50%;
+  border: 2px solid var(--bd); display: flex; align-items: center;
+  justify-content: center; font-size: .65rem; color: transparent;
+  flex-shrink: 0; transition: all .15s;
+}
+.pm-lbl input[type="radio"]:checked + .pm-card .pm-check {
+  background: var(--dk); border-color: var(--dk); color: var(--ac);
+}
+.pm-err {
+  display: none; align-items: center; gap: 8px;
+  background: #FEE2E2; border: 1.5px solid #FECACA; border-radius: 9px;
+  padding: 10px 14px; font-size: .8rem; color: #DC2626; font-weight: 600;
+  margin-top: 12px;
+}
+
+/* ════════════════════════════════════════════════════════════
+   ORDER SUMMARY — RIGHT PANEL
+════════════════════════════════════════════════════════════ */
+.sum-sticky { position: sticky; top: calc(70px + 16px); }
+.sum-card   { background: #fff; border: 1px solid var(--bd); border-radius: 18px; overflow: hidden; }
+.sum-head   { background: var(--dk); padding: 16px 20px; }
+.sum-head h6 { font-weight: 700; font-size: .9rem; color: var(--ac); margin: 0; display: flex; align-items: center; gap: 8px; }
+.sum-body   { padding: 18px 20px; }
+
+.sr { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #F3F4F6; font-size: .84rem; color: var(--mu); gap: 10px; }
+.sr:last-of-type { border-bottom: none; }
+.sr .sv { font-weight: 700; color: var(--dk); text-align: right; font-size: .875rem; }
+
+.s-div { height: 1px; background: var(--bd); margin: 12px 0; }
+
+.s-total {
+  background: var(--sf); border-radius: 10px; padding: 13px 14px;
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 16px; gap: 12px;
+}
+.s-total .tl { font-weight: 700; font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--mu); }
+.s-total .ta { font-weight: 800; font-size: 1.4rem; letter-spacing: -.05em; color: var(--dk); }
+
+.btn-place {
+  width: 100%; background: var(--dk); color: var(--ac); border: none;
+  border-radius: 12px; padding: 14px; font-weight: 700; font-size: .92rem;
+  font-family: var(--fn); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  transition: all .18s;
+}
+.btn-place:hover { background: #1F2937; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(10,10,10,.15); }
+.btn-place:disabled { background: #E5E7EB; color: #9CA3AF; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.back-lnk {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  font-size: .82rem; font-weight: 600; color: var(--mu);
+  text-decoration: none; margin-top: 12px; transition: color .15s;
+}
+.back-lnk:hover { color: var(--dk); }
+.sec-note {
+  text-align: center; font-size: .7rem; color: #D1D5DB; margin-top: 10px;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+
+/* ════════════════════════════════════════════════════════════
+   RESPONSIVE
+════════════════════════════════════════════════════════════ */
+@media (max-width: 575px) {
+  .item-row    { gap: 10px; }
+  .item-thumb  { width: 56px; height: 56px; }
+  .item-name   { font-size: .84rem; }
+  .ck-sec-bd   { padding: 0 14px; }
+  .item-right  { align-items: flex-start; }
+}
+@media (max-width: 400px) {
+  .item-qty-row { flex-direction: column; align-items: flex-start; }
+}
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+<!-- ══ HERO ══════════════════════════════════════════════════ -->
+<div class="ck-hero">
+  <div class="container">
+    <h1>Check<em>out</em></h1>
+    <p>
+      {{ items|length }} produk &middot;
+      Total <strong style="color:var(--ac);">Rp {{ "{:,.0f}".format(total) }}</strong>
+    </p>
+  </div>
+</div>
+
+<div class="container" style="padding-top:36px; padding-bottom:64px;">
+
+  <!-- ══ BREADCRUMB ════════════════════════════════════════════
+       Hanya menggunakan: landing.index, user_product.products, cart.index
+       Tidak ada product.nama_produk / product.category di sini.
+  ══════════════════════════════════════════════════════════════ -->
+  <nav class="ck-bc" aria-label="breadcrumb">
+    <a href="{{ url_for('landing.index') }}">
+      <i class="bi bi-house-door"></i> Beranda
+    </a>
+    <span class="sep">/</span>
+    {% if source == 'buy_now' %}
+      <a href="{{ url_for('user_product.products') }}">Produk</a>
+      <span class="sep">/</span>
+      <span class="cur">Checkout — Buy Now</span>
+    {% else %}
+      <a href="{{ url_for('cart.index') }}">Keranjang</a>
+      <span class="sep">/</span>
+      <span class="cur">Checkout</span>
+    {% endif %}
+  </nav>
+
+  <!-- Source badge -->
+  {% if source == 'buy_now' %}
+    <span class="src-badge src-buynow">
+      <i class="bi bi-lightning-charge-fill"></i> Buy Now — Checkout Langsung
+    </span>
+  {% else %}
+    <span class="src-badge src-cart">
+      <i class="bi bi-cart-fill"></i> Checkout dari Keranjang ({{ items|length }} item)
+    </span>
+  {% endif %}
+
+  <!-- Steps -->
+  <div class="steps">
+    <div class="s-item done">
+      <span class="dot"><i class="bi bi-check2"></i></span>
+      <span class="d-none d-sm-inline">Pilih Produk</span>
+    </div>
+    <div class="s-line"></div>
+    <div class="s-item active">
+      <span class="dot">2</span>
+      <span class="d-none d-sm-inline">Konfirmasi</span>
+    </div>
+    <div class="s-line"></div>
+    <div class="s-item">
+      <span class="dot">3</span>
+      <span class="d-none d-sm-inline">Pembayaran</span>
+    </div>
+  </div>
+
+  <!-- ══ MAIN FORM ══════════════════════════════════════════════
+       POST ke checkout.place_order — endpoint sesuai blueprint
+  ═════════════════════════════════════════════════════════════ -->
+  <form action="{{ url_for('checkout.place_order') }}" method="POST" id="checkoutForm">
+
+    <div class="row g-4 align-items-start">
+
+      <!-- ════════════════════════════════════
+           LEFT — item list + payment
+      ════════════════════════════════════ -->
+      <div class="col-lg-7">
+
+        <!-- ── SECTION 1: Produk ── -->
+        <div class="ck-sec">
+          <div class="ck-sec-hd">
+            <span class="ck-no">1</span>
+            <h6>Produk yang Dipesan</h6>
+            <span class="hd-right">{{ items|length }} item</span>
+          </div>
+
+          <div class="ck-sec-bd">
+            {# ══════════════════════════════════════════════════════
+               LOOP items — SATU-SATUNYA sumber data produk.
+               Tidak ada variabel {{ product }} di halaman ini.
+               Setiap akses produk melalui item.product.*
+
+               Kompatibel dengan:
+                 • Cart checkout   (banyak item)
+                 • Buy Now         (satu item, qty bebas)
+                 • Multi-product   (banyak item, qty masing-masing)
+
+               Data yang tersedia per item:
+                 item.product.nama_produk
+                 item.product.gambar
+                 item.product.harga
+                 item.product.stok
+                 item.product.category  (bisa None)
+                 item.qty
+                 item.subtotal          (= harga × qty)
+            ══════════════════════════════════════════════════════ #}
+            {% for item in items %}
+            <div class="item-row" id="row-{{ loop.index0 }}">
+
+              <!-- Thumbnail: item.product.gambar -->
+              <div class="item-thumb">
+                {% if item.product.gambar %}
+                  <img src="{{ url_for('static', filename='uploads/' + item.product.gambar) }}"
+                       alt="{{ item.product.nama_produk }}" loading="lazy"/>
+                {% else %}
+                  <span class="item-thumb-ph"><i class="bi bi-image-alt"></i></span>
+                {% endif %}
+              </div>
+
+              <!-- Info: item.product.* -->
+              <div class="item-info">
+
+                <!-- Kategori: item.product.category (bisa None) -->
+                {% if item.product.category %}
+                  <div class="item-cat">{{ item.product.category.nama_kategori }}</div>
+                {% endif %}
+
+                <!-- Nama: item.product.nama_produk -->
+                <div class="item-name">{{ item.product.nama_produk }}</div>
+
+                <!-- Harga satuan: item.product.harga -->
+                <div class="item-unit-price">
+                  Rp {{ "{:,.0f}".format(item.product.harga) }} / unit
+                </div>
+
+                <!-- ── QTY PICKER ─────────────────────────────────
+                     Qty ditampilkan dan diubah di sini.
+                     JS membaca nilai input dan menghitung ulang
+                     subtotal item + grand total secara real-time.
+                     Tombol plus dibatasi oleh item.product.stok.
+                ─────────────────────────────────────────────────── -->
+                <div class="item-qty-row">
+                  <div class="qty-ctrl"
+                       data-index="{{ loop.index0 }}"
+                       data-harga="{{ item.product.harga }}"
+                       data-stok="{{ item.product.stok }}">
+                    <button type="button"
+                            class="btn-minus"
+                            onclick="stepQty({{ loop.index0 }}, -1)"
+                            title="Kurangi">
+                      <i class="bi bi-dash"></i>
+                    </button>
+                    <input type="number"
+                           id="qty-{{ loop.index0 }}"
+                           name="checkout_qty_{{ loop.index0 }}"
+                           value="{{ item.qty }}"
+                           min="1"
+                           max="{{ item.product.stok }}"
+                           oninput="onQtyType({{ loop.index0 }}, this)"
+                           onblur="onQtyBlur({{ loop.index0 }}, this)"
+                           title="Jumlah"/>
+                    <button type="button"
+                            class="btn-plus"
+                            onclick="stepQty({{ loop.index0 }}, 1)"
+                            title="Tambah">
+                      <i class="bi bi-plus"></i>
+                    </button>
+                  </div>
+
+                  <!-- Subtotal per item (diupdate JS) -->
+                  <span class="item-subtotal-inline"
+                        id="sub-{{ loop.index0 }}">
+                    Rp {{ "{:,.0f}".format(item.subtotal) }}
+                  </span>
+                </div>
+
+                <!-- Pesan stok tidak mencukupi (ditampilkan JS) -->
+                <div class="stock-warn" id="warn-{{ loop.index0 }}">
+                  <i class="bi bi-exclamation-triangle-fill"></i>
+                  <span id="warn-text-{{ loop.index0 }}"></span>
+                </div>
+
+              </div><!-- /item-info -->
+
+            </div><!-- /item-row -->
+            {% endfor %}
+          </div><!-- /ck-sec-bd -->
+        </div><!-- /.ck-sec produk -->
+
+        <!-- ── SECTION 2: Metode Pembayaran ── -->
+        <div class="ck-sec">
+          <div class="ck-sec-hd">
+            <span class="ck-no">2</span>
+            <h6>Metode Pembayaran</h6>
+          </div>
+          <div class="ck-sec-bd" style="padding-top:16px; padding-bottom:16px;">
+
+            <!-- QRIS -->
+            <label class="pm-lbl">
+              <input type="radio" name="metode_pembayaran" value="QRIS" required/>
+              <div class="pm-card">
+                <div class="pm-icon">📱</div>
+                <div>
+                  <p class="pm-title mb-0">QRIS</p>
+                  <p class="pm-desc mb-0">Scan QR dari GoPay, OVO, Dana, ShopeePay, LinkAja, dll.</p>
+                </div>
+                <div class="pm-check"><i class="bi bi-check2"></i></div>
+              </div>
+            </label>
+
+            <!-- COD -->
+           
+
+            <div class="pm-err" id="pmError">
+              <i class="bi bi-exclamation-circle-fill"></i>
+              Pilih metode pembayaran terlebih dahulu.
+            </div>
+
+          </div>
+        </div>
+
+      </div><!-- /col-lg-7 -->
+
+      <!-- ════════════════════════════════════
+           RIGHT — Order Summary
+           Semua angka bersumber dari items + JS,
+           bukan dari variabel product tunggal.
+      ════════════════════════════════════ -->
+      <div class="col-lg-5">
+        <div class="sum-sticky">
+          <div class="sum-card">
+
+            <div class="sum-head">
+              <h6><i class="bi bi-receipt-cutoff"></i> Ringkasan Pembayaran</h6>
+            </div>
+
+            <div class="sum-body">
+
+              <!-- Rincian per item (nama + qty × subtotal) -->
+              {% for item in items %}
+              <div class="sr">
+                <span class="sl" style="max-width:170px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+                  {{ item.product.nama_produk[:26] }}{% if item.product.nama_produk|length > 26 %}…{% endif %}
+                  <span style="color:#9CA3AF; font-size:.7rem;">&nbsp;×<span id="sum-qty-{{ loop.index0 }}">{{ item.qty }}</span></span>
+                </span>
+                <span class="sv" id="sum-sub-{{ loop.index0 }}">
+                  Rp {{ "{:,.0f}".format(item.subtotal) }}
+                </span>
+              </div>
+              {% endfor %}
+
+              <div class="s-div"></div>
+
+              <div class="sr">
+                <span class="sl"><i class="bi bi-box me-1" style="color:#9CA3AF;"></i>Jumlah Item</span>
+                <span class="sv">{{ items|length }} produk</span>
+              </div>
+              <div class="sr">
+                <span class="sl"><i class="bi bi-truck me-1" style="color:#9CA3AF;"></i>Ongkos Kirim</span>
+                <span style="font-weight:700; color:#16A34A; font-size:.875rem;">Gratis</span>
+              </div>
+
+              <!-- Grand total — diupdate JS -->
+              <div class="s-total" style="margin-top:12px;">
+                <span class="tl">Total Pembayaran</span>
+                <span class="ta" id="grandTotal">Rp {{ "{:,.0f}".format(total) }}</span>
+              </div>
+
+              <!-- Buat Pesanan -->
+              <button type="submit" class="btn-place" id="btnPlace">
+                <i class="bi bi-bag-check-fill"></i> Buat Pesanan Sekarang
+              </button>
+
+              <!-- Back link -->
+              {% if source == 'buy_now' %}
+                <a href="{{ url_for('user_product.products') }}" class="back-lnk">
+                  <i class="bi bi-arrow-left"></i> Kembali ke Produk
+                </a>
+              {% else %}
+                <a href="{{ url_for('cart.index') }}" class="back-lnk">
+                  <i class="bi bi-arrow-left"></i> Kembali ke Keranjang
+                </a>
+              {% endif %}
+
+              <p class="sec-note">
+                <i class="bi bi-shield-lock-fill"></i> Transaksi aman &amp; terenkripsi SSL
+              </p>
+
+            </div><!-- /sum-body -->
+          </div>
+        </div>
+      </div><!-- /col-lg-5 -->
+
+    </div><!-- /row -->
+  </form>
+
+</div><!-- /container -->
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+/*
+  ════════════════════════════════════════════════════════════════
+  QTY PICKER CHECKOUT — JavaScript
+
+  Setiap item memiliki:
+    #qty-{i}      → input qty (visible)
+    #sub-{i}      → subtotal item (tampilan kanan picker)
+    #sum-qty-{i}  → qty di panel summary kanan
+    #sum-sub-{i}  → subtotal di panel summary kanan
+    #warn-{i}     → pesan "Stok tidak mencukupi"
+    #grandTotal   → grand total keseluruhan
+
+  Data per item diambil dari data-* attribute pada .qty-ctrl:
+    data-harga = harga satuan (integer)
+    data-stok  = stok maksimal (integer)
+
+  Tidak ada akses ke variabel product — semua data sudah
+  di-embed ke DOM saat Jinja2 render.
+  ════════════════════════════════════════════════════════════════
+*/
+
+  /* ── Cache semua data item dari DOM ── */
+  /* items[] diinisialisasi di dalam DOMContentLoaded (bukan di sini).
+     Jika diisi di sini, DOM belum siap → qtyEl.value kosong
+     → parseInt('') = NaN → fallback '1' → BUG: qty selalu 1. */
+  const items = [];
+
+  /* ── Format Rupiah ── */
+  function toRp(n) {
+    return 'Rp\u00a0' + n.toLocaleString('id-ID');
+  }
+
+  /* ════════════════════════════════════════════
+     updateItem(i, newQty)
+     Satu fungsi untuk update semua elemen item i
+     + recalculate grand total.
+  ════════════════════════════════════════════ */
+  function updateItem(i, newQty) {
+    const item = items[i];
+    if (!item) return;
+
+    /* Clamp */
+    if (isNaN(newQty) || newQty < 1) newQty = 1;
+    if (newQty > item.stok)          newQty = item.stok;
+    item.qty = newQty;
+
+    /* ── 1. Update nilai pada input yang DIKIRIM ke backend ──
+       Input punya name="checkout_qty_{i}" sehingga ikut POST.
+       updateItem() wajib set .value agar nilai input = qty terbaru
+       pada saat form disubmit, bukan nilai lama dari Jinja render. */
+    const qtyEl = document.getElementById('qty-' + i);
+    if (qtyEl) qtyEl.value = newQty;
+
+    /* ── 2. Disabled state tombol ── */
+    const ctrl  = document.querySelector('.qty-ctrl[data-index="' + i + '"]');
+    if (ctrl) {
+      const minus = ctrl.querySelector('.btn-minus');
+      const plus  = ctrl.querySelector('.btn-plus');
+      if (minus) minus.disabled = (newQty <= 1);
+      if (plus)  plus.disabled  = (newQty >= item.stok);
+    }
+
+    /* ── 3. Subtotal item (tampilan kanan picker) ── */
+    const subtotal = item.harga * newQty;
+    const subEl  = document.getElementById('sub-' + i);
+    if (subEl) subEl.textContent = toRp(subtotal);
+
+    /* ── 4. Summary panel kanan: qty + subtotal ── */
+    const sumQty = document.getElementById('sum-qty-' + i);
+    const sumSub = document.getElementById('sum-sub-' + i);
+    if (sumQty) sumQty.textContent = newQty;
+    if (sumSub) sumSub.textContent = toRp(subtotal);
+
+    /* ── 5. Pesan "Stok tidak mencukupi" ── */
+    const warnEl   = document.getElementById('warn-' + i);
+    const warnText = document.getElementById('warn-text-' + i);
+    if (warnEl && warnText) {
+      if (newQty >= item.stok && item.stok > 0) {
+        warnText.textContent = 'Maksimal ' + item.stok + ' unit (sesuai stok tersedia)';
+        warnEl.classList.add('show');
+      } else {
+        warnEl.classList.remove('show');
+      }
+    }
+
+    /* ── 6. Recalculate grand total ── */
+    recalcTotal();
+  }
+
+  /* ════════════════════════════════════════════
+     recalcTotal — jumlahkan subtotal semua item
+  ════════════════════════════════════════════ */
+  function recalcTotal() {
+    let grand = 0;
+    items.forEach(function(item) {
+      if (item) grand += item.harga * item.qty;
+    });
+    const el = document.getElementById('grandTotal');
+    if (el) el.textContent = toRp(grand);
+  }
+
+  /* ── Klik [+] / [-] ── */
+  function stepQty(i, delta) {
+    const item  = items[i];
+    if (!item) return;
+    updateItem(i, item.qty + delta);
+  }
+
+  /* ── Ketik manual (oninput) ──
+     Sync segera supaya hidden input (jika ada) tidak ketinggalan
+     jika user langsung klik submit setelah mengetik. */
+  function onQtyType(i, el) {
+    const v = parseInt(el.value, 10);
+    if (el.value === '' || el.value === '-') return; /* tunggu blur */
+    updateItem(i, isNaN(v) ? 1 : v);
+  }
+
+  /* ── Blur: finalisasi nilai ── */
+  function onQtyBlur(i, el) {
+    const v = parseInt(el.value, 10);
+    updateItem(i, isNaN(v) ? 1 : v);
+  }
+
+  /* ════════════════════════════════════════════
+     Init: set tombol disabled state awal
+  ════════════════════════════════════════════ */
+  document.addEventListener('DOMContentLoaded', function() {
+
+    document.querySelectorAll('.qty-ctrl').forEach(function(ctrl) {
+      var idx   = parseInt(ctrl.dataset.index, 10);
+      var harga = parseInt(ctrl.dataset.harga,  10);
+      var stok  = parseInt(ctrl.dataset.stok,   10);
+      var qtyEl = document.getElementById('qty-' + idx);
+      /* Baca dari value input yang sudah dirender Jinja2 */
+      var qtyFromDom = qtyEl ? parseInt(qtyEl.value, 10) : 1;
+      if (isNaN(qtyFromDom) || qtyFromDom < 1) qtyFromDom = 1;
+      items[idx] = {
+        harga : harga,
+        stok  : stok,
+        qty   : qtyFromDom   /* ← qty asli dari Cart.qty via Jinja2 */
+      };
+    });
+
+    /* Blokir karakter bukan angka di semua qty input */
+    document.querySelectorAll('.qty-ctrl input').forEach(function(inp) {
+      inp.addEventListener('keydown', function(e) {
+        if (['e','E','+','-','.'].includes(e.key)) e.preventDefault();
+      });
+    });
+
+    /* Inisialisasi visual (disabled state tombol, subtotal, grand total)
+       menggunakan qty yang sudah benar dari Cart */
+    items.forEach(function(item, i) {
+      if (!item) return;
+      updateItem(i, item.qty);
+    });
+  });
+
+  /* ════════════════════════════════════════════
+     Form submit — validasi metode pembayaran
+  ════════════════════════════════════════════ */
+  document.getElementById('checkoutForm').addEventListener('submit', function(e) {
+    const sel = document.querySelector('input[name="metode_pembayaran"]:checked');
+    const err = document.getElementById('pmError');
+    const btn = document.getElementById('btnPlace');
+
+    if (!sel) {
+      e.preventDefault();
+      err.style.display = 'flex';
+      err.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+
+    err.style.display = 'none';
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span> Memproses pesanan…';
+  });
+
+  document.querySelectorAll('input[name="metode_pembayaran"]').forEach(function(r) {
+    r.addEventListener('change', function() {
+      document.getElementById('pmError').style.display = 'none';
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,300 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block title %}Detail Pesanan #{{ '%05d'|format(order.id) }} — NexShop Admin{% endblock %}
+{% block page_title %}Detail Pesanan{% endblock %}
+{% block page_subtitle %}Pesanan #{{ '%05d'|format(order.id) }} oleh {{ user.nama if user else 'Unknown' }}{% endblock %}
+
+{% block breadcrumb %}
+  <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}" class="text-muted text-decoration-none">Admin</a></li>
+  <li class="breadcrumb-item"><a href="{{ url_for('order_admin.index') }}" class="text-muted text-decoration-none">Pesanan</a></li>
+  <li class="breadcrumb-item active text-muted">#{{ '%05d'|format(order.id) }}</li>
+{% endblock %}
+
+{% block page_actions %}
+  <a href="{{ url_for('order_admin.index') }}"
+     style="border:1.5px solid #E8E8E2; border-radius:9px; padding:9px 16px; font-family:var(--font-display); font-weight:600; font-size:0.85rem; color:#444; text-decoration:none; display:inline-flex; align-items:center; gap:7px; background:#fff;">
+    <i class="bi bi-arrow-left"></i> Kembali
+  </a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .sb { display:inline-flex; align-items:center; gap:5px; padding:5px 12px; border-radius:7px; font-family:var(--font-display); font-weight:700; font-size:0.78rem; white-space:nowrap; }
+  .sb::before { content:''; width:6px; height:6px; border-radius:50%; background:currentColor; opacity:0.7; }
+  .sb-pending    { background:#FEF9C3; color:#854D0E; }
+  .sb-waiting    { background:#DBEAFE; color:#1E40AF; }
+  .sb-processing { background:#EDE9FE; color:#5B21B6; }
+  .sb-completed  { background:#DCFCE7; color:#166534; }
+  .sb-rejected   { background:#FEE2E2; color:#991B1B; }
+
+  .detail-card { background:#fff; border:1px solid #E8E8E2; border-radius:16px; overflow:hidden; margin-bottom:20px; }
+  .detail-card-header { padding:16px 22px; border-bottom:1px solid #F0F0EA; display:flex; align-items:center; justify-content:space-between; }
+  .detail-card-header h6 { font-family:var(--font-display); font-weight:700; font-size:0.95rem; margin:0; color:#0A0A0A; display:flex; align-items:center; gap:8px; }
+
+  .info-row { display:flex; align-items:flex-start; padding:12px 0; border-bottom:1px solid #F5F5F0; gap:14px; }
+  .info-row:last-child { border-bottom:none; padding-bottom:0; }
+  .info-key { font-family:var(--font-display); font-weight:700; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.07em; color:#AAA; min-width:140px; flex-shrink:0; padding-top:2px; }
+  .info-val { font-size:0.9rem; color:#0A0A0A; flex:1; }
+
+  .qs-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(130px,1fr)); gap:12px; padding:18px 22px; }
+  .qs-item { background:#FAFAF8; border:1px solid #F0F0EA; border-radius:10px; padding:14px; }
+  .qs-item .ql { font-family:var(--font-display); font-weight:700; font-size:0.65rem; text-transform:uppercase; letter-spacing:0.08em; color:#AAA; margin-bottom:6px; }
+  .qs-item .qv { font-family:var(--font-display); font-weight:800; font-size:1.1rem; letter-spacing:-0.03em; color:#0A0A0A; }
+
+  .action-btn-group { display:flex; flex-wrap:wrap; gap:10px; padding:20px; background:#FAFAF8; border-top:1px solid #F0F0EA; }
+  .abt { border:none; border-radius:9px; padding:11px 20px; font-family:var(--font-display); font-weight:700; font-size:0.85rem; cursor:pointer; display:inline-flex; align-items:center; gap:7px; text-decoration:none; transition:all 0.18s; }
+  .abt-completed { background:#0A0A0A; color:#E8FF47; }
+  .abt-completed:hover { background:#222; color:#E8FF47; }
+  .abt-disabled { background:#F5F5F0; color:#AAA; cursor:not-allowed; }
+
+  .proof-preview-wrap { width:100%; max-width:280px; border-radius:12px; overflow:hidden; border:1.5px solid #E8E8E2; }
+  .proof-preview-wrap img { width:100%; display:block; }
+
+  /* Locked status note */
+  .locked-note {
+    background: #F5F5F0;
+    border: 1.5px solid #E8E8E2;
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 0.82rem;
+    color: #666;
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+  }
+
+  /* Timeline */
+  .status-timeline { display:flex; flex-direction:column; gap:0; }
+  .tl-item { display:flex; align-items:flex-start; gap:14px; padding-bottom:20px; position:relative; }
+  .tl-item:last-child { padding-bottom:0; }
+  .tl-item::before { content:''; position:absolute; left:11px; top:24px; bottom:0; width:2px; background:#EAEAE4; }
+  .tl-item:last-child::before { display:none; }
+  .tl-dot { width:24px; height:24px; border-radius:50%; border:2px solid #E8E8E2; background:#F5F5F0; display:flex; align-items:center; justify-content:center; font-size:0.65rem; color:#BBB; flex-shrink:0; z-index:1; }
+  .tl-dot.done { background:#0A0A0A; border-color:#0A0A0A; color:#E8FF47; }
+  .tl-dot.current { background:#2563EB; border-color:#2563EB; color:#fff; }
+  .tl-dot.rejected { background:#DC2626; border-color:#DC2626; color:#fff; }
+  .tl-content .tl-title { font-family:var(--font-display); font-weight:700; font-size:0.85rem; color:#0A0A0A; }
+  .tl-content .tl-sub { font-size:0.75rem; color:#888; margin-top:2px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Quick stats -->
+<div class="detail-card">
+  <div class="qs-grid">
+    <div class="qs-item">
+      <div class="ql"><i class="bi bi-hash me-1"></i>Order ID</div>
+      <div class="qv">#{{ '%05d'|format(order.id) }}</div>
+    </div>
+    <div class="qs-item">
+      <div class="ql"><i class="bi bi-cash-coin me-1"></i>Total</div>
+      <div class="qv">Rp {{ "{:,.0f}".format(order.total_harga) }}</div>
+    </div>
+    <div class="qs-item">
+      <div class="ql"><i class="bi bi-credit-card me-1"></i>Metode</div>
+      <div class="qv">{% if order.metode_pembayaran == 'QRIS' %}📱{% else %}🚚{% endif %} {{ order.metode_pembayaran }}</div>
+    </div>
+    <div class="qs-item">
+      <div class="ql"><i class="bi bi-flag me-1"></i>Status</div>
+      <div style="margin-top:4px;">
+        {% if order.status == 'Pending Payment' %}<span class="sb sb-pending">{{ order.status }}</span>
+        {% elif order.status == 'Waiting Verification' %}<span class="sb sb-waiting">{{ order.status }}</span>
+        {% elif order.status == 'Processing' %}<span class="sb sb-processing">{{ order.status }}</span>
+        {% elif order.status == 'Completed' %}<span class="sb sb-completed">{{ order.status }}</span>
+        {% elif order.status == 'Rejected' %}<span class="sb sb-rejected">{{ order.status }}</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="qs-item">
+      <div class="ql"><i class="bi bi-calendar3 me-1"></i>Tanggal</div>
+      <div class="qv" style="font-size:0.85rem;">{% if order.created_at %}{{ order.created_at.strftime('%d %b %Y') }}{% else %}—{% endif %}</div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4">
+
+  <!-- LEFT -->
+  <div class="col-lg-7">
+
+    <div class="detail-card">
+      <div class="detail-card-header">
+        <h6><i class="bi bi-receipt-cutoff" style="color:#888;"></i>Informasi Pesanan</h6>
+      </div>
+      <div class="px-4 py-3">
+        <div class="info-row">
+          <span class="info-key">Order ID</span>
+          <span class="info-val"><code style="background:#F5F5F0; border:1px solid #E8E8E2; border-radius:5px; padding:2px 8px; font-size:0.82rem;">#{{ '%05d'|format(order.id) }}</code></span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Total Harga</span>
+          <span class="info-val" style="font-family:var(--font-display); font-weight:800; font-size:1.1rem;">Rp {{ "{:,.0f}".format(order.total_harga) }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Metode Bayar</span>
+          <span class="info-val" style="font-family:var(--font-display); font-weight:700;">{% if order.metode_pembayaran == 'QRIS' %}📱{% else %}🚚{% endif %} {{ order.metode_pembayaran }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Status</span>
+          <span class="info-val">
+            {% if order.status == 'Pending Payment' %}<span class="sb sb-pending">{{ order.status }}</span>
+            {% elif order.status == 'Waiting Verification' %}<span class="sb sb-waiting">{{ order.status }}</span>
+            {% elif order.status == 'Processing' %}<span class="sb sb-processing">{{ order.status }}</span>
+            {% elif order.status == 'Completed' %}<span class="sb sb-completed">{{ order.status }}</span>
+            {% elif order.status == 'Rejected' %}<span class="sb sb-rejected">{{ order.status }}</span>
+            {% endif %}
+          </span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Dibuat</span>
+          <span class="info-val">{% if order.created_at %}{{ order.created_at.strftime('%d %B %Y, %H:%M') }} WIB{% else %}—{% endif %}</span>
+        </div>
+
+        {% if order.bukti_pembayaran %}
+        <div class="info-row">
+          <span class="info-key">Bukti Bayar</span>
+          <span class="info-val">
+            <div class="proof-preview-wrap mb-2">
+              <img src="{{ url_for('static', filename='uploads/' + order.bukti_pembayaran) }}" alt="Bukti pembayaran"/>
+            </div>
+            <a href="{{ url_for('payment_admin.detail', id=order.id) }}"
+               style="font-family:var(--font-display); font-weight:700; font-size:0.82rem; color:#2563EB; text-decoration:none;">
+              <i class="bi bi-arrow-up-right-square me-1"></i>Lihat di halaman Pembayaran
+            </a>
+          </span>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- ════════════════════════════════
+           STATUS ACTION — dengan GUARD
+      ════════════════════════════════ -->
+      <div class="action-btn-group">
+
+        {% if 'Completed' in allowed_next %}
+        <form action="{{ url_for('order_admin.update_status', id=order.id) }}" method="POST"
+              onsubmit="return confirm('Selesaikan pesanan ini? Status akan menjadi Completed.')">
+          <input type="hidden" name="status" value="Completed">
+          <button type="submit" class="abt abt-completed">
+            <i class="bi bi-bag-check-fill"></i> Selesaikan Pesanan (Processing → Completed)
+          </button>
+        </form>
+        {% endif %}
+
+        {% if order.status == 'Completed' %}
+        <div class="locked-note">
+          <i class="bi bi-lock-fill" style="flex-shrink:0; margin-top:1px;"></i>
+          <span>Pesanan ini sudah <strong>Completed</strong>. Status tidak dapat diubah lagi (Completed bersifat final).</span>
+        </div>
+        {% elif order.status == 'Rejected' %}
+        <div class="locked-note">
+          <i class="bi bi-lock-fill" style="flex-shrink:0; margin-top:1px;"></i>
+          <span>Pesanan ini sudah <strong>Rejected</strong>. Status tidak dapat diubah lagi.</span>
+        </div>
+        {% elif order.status == 'Waiting Verification' %}
+        <div class="locked-note">
+          <i class="bi bi-info-circle-fill" style="flex-shrink:0; margin-top:1px;"></i>
+          <span>Untuk menyetujui/menolak pembayaran, gunakan halaman
+            <a href="{{ url_for('payment_admin.detail', id=order.id) }}" style="font-weight:700; color:#2563EB;">Verifikasi Pembayaran</a>.
+          </span>
+        </div>
+        {% elif order.status == 'Pending Payment' %}
+        <div class="locked-note">
+          <i class="bi bi-clock-history" style="flex-shrink:0; margin-top:1px;"></i>
+          <span>Menunggu pelanggan menyelesaikan pembayaran.</span>
+        </div>
+        {% endif %}
+
+      </div>
+    </div>
+
+    {% if user %}
+    <div class="detail-card">
+      <div class="detail-card-header">
+        <h6><i class="bi bi-person-circle" style="color:#888;"></i>Informasi Customer</h6>
+      </div>
+      <div class="px-4 py-3">
+        <div class="d-flex align-items-center gap-3 mb-3">
+          <div style="width:48px; height:48px; background:#0A0A0A; border-radius:12px; display:flex; align-items:center; justify-content:center; color:#E8FF47; font-size:1.2rem; flex-shrink:0;">
+            <i class="bi bi-person-fill"></i>
+          </div>
+          <div>
+            <div style="font-family:var(--font-display); font-weight:700; font-size:1rem; color:#0A0A0A;">{{ user.nama }}</div>
+            <div style="font-size:0.78rem; color:#888;">@{{ user.username }}</div>
+          </div>
+        </div>
+        <div class="info-row">
+          <span class="info-key">Email</span>
+          <span class="info-val">{{ user.email }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-key">User ID</span>
+          <span class="info-val"><code style="background:#F5F5F0; border:1px solid #E8E8E2; border-radius:5px; padding:2px 8px; font-size:0.82rem;">#{{ user.id }}</code></span>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- RIGHT: Timeline -->
+  <div class="col-lg-5">
+    <div class="detail-card">
+      <div class="detail-card-header">
+        <h6><i class="bi bi-clock-history" style="color:#888;"></i>Progress Status</h6>
+      </div>
+      <div class="p-4">
+        <div class="status-timeline">
+          {% set timeline = [
+            ('Pending Payment',      'Menunggu pembayaran dari pelanggan'),
+            ('Waiting Verification', 'Bukti pembayaran diterima, menunggu verifikasi'),
+            ('Processing',           'Pesanan diterima, sedang diproses & dikemas'),
+            ('Completed',            'Pesanan selesai dikirim dan diterima'),
+          ] %}
+          {% set status_order = ['Pending Payment','Waiting Verification','Processing','Completed'] %}
+          {% set current_idx  = status_order.index(order.status) if order.status in status_order else -1 %}
+
+          {% if order.status == 'Rejected' %}
+            <div class="tl-item">
+              <div class="tl-dot rejected"><i class="bi bi-x"></i></div>
+              <div class="tl-content">
+                <div class="tl-title">Pesanan Ditolak</div>
+                <div class="tl-sub">Pembayaran ditolak oleh admin</div>
+              </div>
+            </div>
+          {% else %}
+            {% for status, desc in timeline %}
+            {% set si = status_order.index(status) %}
+            <div class="tl-item">
+              <div class="tl-dot {% if si < current_idx %}done{% elif si == current_idx %}current{% endif %}">
+                {% if si < current_idx %}<i class="bi bi-check2"></i>
+                {% elif si == current_idx %}<i class="bi bi-circle-fill" style="font-size:0.5rem;"></i>
+                {% else %}{{ si + 1 }}{% endif %}
+              </div>
+              <div class="tl-content">
+                <div class="tl-title" style="{{ 'color:#0A0A0A;' if si == current_idx else 'color:#888;' if si > current_idx else '' }}">{{ status }}</div>
+                <div class="tl-sub">{{ desc }}</div>
+              </div>
+            </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Status rules note -->
+    <div style="background:#F5F5F0; border:1px solid #E8E8E2; border-radius:14px; padding:18px 20px;">
+      <p style="font-family:var(--font-display); font-weight:700; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.07em; color:#AAA; margin-bottom:10px;">
+        <i class="bi bi-info-circle me-1"></i>Aturan Transisi Status
+      </p>
+      <ul style="font-size:0.8rem; color:#666; line-height:1.85; margin:0; padding-left:16px;">
+        <li>Verifikasi pembayaran QRIS dilakukan di halaman <strong>Pembayaran</strong></li>
+        <li>Admin hanya boleh: <strong>Processing → Completed</strong></li>
+        <li><strong>Completed</strong> dan <strong>Rejected</strong> bersifat final</li>
+        <li>Tidak bisa mundur ke status sebelumnya</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

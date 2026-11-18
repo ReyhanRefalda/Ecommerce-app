@@ -1,0 +1,403 @@
+{% extends 'layouts/base.html' %}
+{% block title %}Riwayat Pesanan — NexShop{% endblock %}
+
+{% block extra_css %}
+<style>
+/* ═══════════════════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════════════════ */
+:root {
+  --dk:  #0A0A0A; --ac:  #E8FF47;
+  --bd:  #E5E7EB; --sf:  #F9FAFB;
+  --mu:  #6B7280; --rd:  14px;
+}
+
+/* ── Hero ── */
+.history-hero {
+  background: var(--dk); padding: 44px 0 58px;
+  position: relative; overflow: hidden;
+}
+.history-hero::before {
+  content: ''; position: absolute; top: -40%; right: -15%;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(232,255,71,.07) 0%, transparent 65%);
+  pointer-events: none;
+}
+.history-hero::after {
+  content: ''; position: absolute; bottom: -1px; left: 0; right: 0;
+  height: 32px; background: #F4F5F7; border-radius: 32px 32px 0 0;
+}
+.history-hero h1 {
+  font-weight: 800; font-size: clamp(1.8rem,3.5vw,2.4rem);
+  letter-spacing: -.04em; color: #fff; margin-bottom: 6px; position: relative; z-index: 1;
+}
+.history-hero h1 em { color: var(--ac); font-style: normal; }
+.history-hero p { color: rgba(255,255,255,.45); font-size: .875rem; margin: 0; position: relative; z-index: 1; }
+
+/* ── Status badges (shared) ── */
+.status-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px 12px; border-radius: 100px;
+  font-size: .72rem; font-weight: 800; white-space: nowrap;
+  letter-spacing: .02em;
+}
+.status-badge::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; opacity: .7;
+}
+.sb-pending    { background: #FEF9C3; color: #854D0E; }
+.sb-waiting    { background: #FEF3C7; color: #D97706; }
+.sb-processing { background: #DBEAFE; color: #1E40AF; }
+.sb-completed  { background: #DCFCE7; color: #166534; }
+.sb-rejected   { background: #FEE2E2; color: #991B1B; }
+
+/* ── Order card ── */
+.order-card {
+  background: #fff; border: 1px solid var(--bd); border-radius: 18px;
+  overflow: hidden; margin-bottom: 20px;
+  transition: box-shadow .2s;
+}
+.order-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,.07); }
+
+/* Header */
+.oc-header {
+  padding: 14px 20px; background: #FAFAFA;
+  border-bottom: 1px solid var(--bd);
+  display: flex; align-items: center; flex-wrap: wrap; gap: 10px;
+}
+.oc-id {
+  font-family: monospace; font-weight: 800; font-size: .9rem;
+  background: var(--dk); color: var(--ac);
+  padding: 4px 11px; border-radius: 7px; letter-spacing: .04em;
+}
+.oc-date {
+  font-size: .78rem; color: var(--mu);
+  display: flex; align-items: center; gap: 5px;
+}
+.oc-method {
+  font-size: .78rem; font-weight: 600; color: var(--mu);
+  background: var(--sf); border: 1px solid var(--bd);
+  padding: 4px 10px; border-radius: 7px;
+  display: flex; align-items: center; gap: 5px;
+}
+.oc-header .ms-auto { margin-left: auto; }
+
+/* Item list */
+.oc-items { padding: 0 20px; }
+
+.item-row {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 0; border-bottom: 1px solid #F9FAFB;
+}
+.item-row:last-child { border-bottom: none; }
+
+.item-thumb {
+  width: 68px; height: 68px; border-radius: 11px;
+  background: var(--sf); border: 1px solid var(--bd);
+  overflow: hidden; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.item-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.item-thumb-ph { font-size: 1.6rem; color: #D1D5DB; }
+
+.item-info { flex: 1; min-width: 0; }
+.item-cat  { font-size: .67rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: #9CA3AF; margin-bottom: 3px; }
+.item-name { font-weight: 700; font-size: .9rem; color: var(--dk); line-height: 1.3; margin-bottom: 4px; }
+.item-meta { font-size: .78rem; color: var(--mu); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.item-meta .price { font-weight: 600; }
+.item-meta .qty   { background: #F3F4F6; padding: 2px 8px; border-radius: 5px; font-weight: 700; font-size: .72rem; }
+
+.item-subtotal {
+  font-weight: 800; font-size: .95rem; letter-spacing: -.02em;
+  color: var(--dk); white-space: nowrap; text-align: right; flex-shrink: 0;
+}
+
+/* Footer */
+.oc-footer {
+  padding: 14px 20px; border-top: 1px solid var(--bd);
+  background: #FAFAFA;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 12px;
+}
+.oc-total-lbl { font-size: .78rem; color: var(--mu); font-weight: 600; }
+.oc-total-val {
+  font-weight: 800; font-size: 1.1rem; letter-spacing: -.03em; color: var(--dk);
+}
+.oc-footer .ms-auto { margin-left: auto; }
+
+.btn-detail-link {
+  background: var(--dk); color: var(--ac); border: none;
+  border-radius: 9px; padding: 9px 18px;
+  font-weight: 700; font-size: .82rem;
+  display: inline-flex; align-items: center; gap: 7px;
+  text-decoration: none; transition: all .18s;
+}
+.btn-detail-link:hover { background: #1F2937; color: var(--ac); transform: translateY(-1px); }
+
+/* ════════════════════════════════
+   TIMELINE (compact)
+════════════════════════════════ */
+.timeline-compact {
+  display: flex; align-items: center; gap: 0;
+  padding: 12px 20px; border-bottom: 1px solid var(--bd);
+  overflow-x: auto; scrollbar-width: none;
+}
+.timeline-compact::-webkit-scrollbar { display: none; }
+
+.tl-step {
+  display: flex; flex-direction: column; align-items: center;
+  flex-shrink: 0;
+}
+.tl-dot-wrap {
+  display: flex; align-items: center;
+  width: 100%;
+}
+.tl-dot {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 2px solid #E5E7EB; background: #F9FAFB;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .62rem; color: #9CA3AF; flex-shrink: 0;
+  transition: all .2s;
+}
+.tl-dot.done   { background: var(--dk); border-color: var(--dk); color: var(--ac); }
+.tl-dot.active { background: #2563EB; border-color: #2563EB; color: #fff; box-shadow: 0 0 0 4px rgba(37,99,235,.15); }
+.tl-dot.reject { background: #DC2626; border-color: #DC2626; color: #fff; }
+.tl-line {
+  flex: 1; height: 2px; background: #E5E7EB; min-width: 24px;
+}
+.tl-line.done { background: var(--dk); }
+.tl-label {
+  font-size: .62rem; color: #9CA3AF; margin-top: 5px;
+  text-align: center; white-space: nowrap; font-weight: 500;
+  max-width: 60px;
+}
+.tl-label.done   { color: #374151; font-weight: 600; }
+.tl-label.active { color: #2563EB; font-weight: 700; }
+.tl-label.reject { color: #DC2626; font-weight: 700; }
+
+/* ── Empty state ── */
+.empty-state {
+  text-align: center; padding: 80px 24px;
+  background: #fff; border: 1px solid var(--bd); border-radius: 18px;
+}
+.empty-state .ei { font-size: 4rem; opacity: .12; margin-bottom: 16px; }
+.empty-state h4 { font-weight: 800; font-size: 1.2rem; margin-bottom: 8px; color: #111827; }
+.empty-state p  { font-size: .875rem; color: var(--mu); margin-bottom: 20px; }
+.btn-shop {
+  background: var(--dk); color: var(--ac); border: none;
+  border-radius: 11px; padding: 12px 24px; font-weight: 700;
+  font-size: .875rem; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 8px; transition: all .18s;
+}
+.btn-shop:hover { background: #1F2937; color: var(--ac); }
+
+/* ── Responsive ── */
+@media (max-width: 575px) {
+  .oc-header  { padding: 12px 14px; }
+  .oc-items   { padding: 0 14px; }
+  .oc-footer  { padding: 12px 14px; }
+  .item-thumb { width: 56px; height: 56px; }
+  .item-name  { font-size: .84rem; }
+  .item-subtotal { font-size: .85rem; }
+  .timeline-compact { padding: 10px 14px; }
+}
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+<!-- Hero -->
+<div class="history-hero">
+  <div class="container">
+    <h1>Riwayat <em>Pesanan</em></h1>
+    <p>{{ orders|length }} pesanan ditemukan</p>
+  </div>
+</div>
+
+<div class="container" style="padding-top:32px; padding-bottom:64px;">
+
+  {% if orders %}
+
+    {% for order in orders %}
+    {# Items untuk order ini (dict dari route) #}
+    {% set items = order.items %}
+
+    <div class="order-card">
+
+      <!-- ── HEADER ── -->
+      <div class="oc-header">
+        <span class="oc-id">#{{ '%05d'|format(order.id) }}</span>
+        <span class="oc-date">
+          <i class="bi bi-calendar3" style="font-size:.7rem;"></i>
+          {{ order.created_at | wib_date if order.created_at else '—' }}
+        </span>
+        <span class="oc-method">
+          {% if order.metode_pembayaran == 'QRIS' %}📱{% else %}🚚{% endif %}
+          {{ order.metode_pembayaran or '—' }}
+        </span>
+        <span class="ms-auto">
+          {# Status badge #}
+          {% if order.status == 'Pending Payment' %}
+            <span class="status-badge sb-pending">{{ order.status }}</span>
+          {% elif order.status == 'Waiting Verification' %}
+            <span class="status-badge sb-waiting">{{ order.status }}</span>
+          {% elif order.status == 'Processing' %}
+            <span class="status-badge sb-processing">{{ order.status }}</span>
+          {% elif order.status == 'Completed' %}
+            <span class="status-badge sb-completed">{{ order.status }}</span>
+          {% elif order.status == 'Rejected' %}
+            <span class="status-badge sb-rejected">{{ order.status }}</span>
+          {% endif %}
+        </span>
+      </div>
+
+      <!-- ── TIMELINE (compact) ── -->
+      {#
+        Step index untuk masing-masing status normal:
+          0 = Pending Payment
+          1 = Waiting Verification
+          2 = Processing
+          3 = Completed
+        Rejected = jalur khusus
+      #}
+      {% set tl_steps = [
+        ('Dibuat',         'Pending Payment'),
+        ('Verifikasi',     'Waiting Verification'),
+        ('Diproses',       'Processing'),
+        ('Selesai',        'Completed'),
+      ] %}
+      {% set status_order = ['Pending Payment','Waiting Verification','Processing','Completed'] %}
+      {% set cur_idx = status_order.index(order.status) if order.status in status_order else -1 %}
+
+      <div class="timeline-compact">
+        {% if order.status == 'Rejected' %}
+          <!-- Jalur Rejected -->
+          <div class="tl-step">
+            <div class="tl-dot-wrap">
+              <div class="tl-dot done"><i class="bi bi-check2"></i></div>
+              <div class="tl-line done"></div>
+            </div>
+            <div class="tl-label done">Dibuat</div>
+          </div>
+          <div class="tl-step">
+            <div class="tl-dot-wrap">
+              <div class="tl-dot done"><i class="bi bi-check2"></i></div>
+              <div class="tl-line" style="background:#DC2626;"></div>
+            </div>
+            <div class="tl-label done">Verifikasi</div>
+          </div>
+          <div class="tl-step">
+            <div class="tl-dot-wrap">
+              <div class="tl-dot reject"><i class="bi bi-x"></i></div>
+            </div>
+            <div class="tl-label reject">Ditolak</div>
+          </div>
+
+        {% else %}
+          <!-- Jalur Normal -->
+          {% for lbl, s in tl_steps %}
+            {% set si = status_order.index(s) %}
+            <div class="tl-step">
+              <div class="tl-dot-wrap">
+                <div class="tl-dot
+                  {{ 'done' if si < cur_idx else
+                     'active' if si == cur_idx else '' }}">
+                  {% if si < cur_idx %}
+                    <i class="bi bi-check2"></i>
+                  {% elif si == cur_idx %}
+                    <i class="bi bi-circle-fill" style="font-size:.4rem;"></i>
+                  {% else %}
+                    {{ si + 1 }}
+                  {% endif %}
+                </div>
+                {% if not loop.last %}
+                  <div class="tl-line {{ 'done' if si < cur_idx }}"></div>
+                {% endif %}
+              </div>
+              <div class="tl-label
+                {{ 'done' if si < cur_idx else
+                   'active' if si == cur_idx else '' }}">
+                {{ lbl }}
+              </div>
+            </div>
+          {% endfor %}
+        {% endif %}
+      </div>
+
+      <!-- ── ITEM LIST ── -->
+      <div class="oc-items">
+        {% if items %}
+         {% for oi in items %}
+{% set prod = oi.product %}
+          <div class="item-row">
+
+            <!-- Thumbnail: prod.gambar -->
+            <div class="item-thumb">
+              {% if prod.gambar %}
+                <img src="{{ url_for('static', filename='uploads/' + prod.gambar) }}"
+                     alt="{{ prod.nama_produk }}" loading="lazy"/>
+              {% else %}
+                <span class="item-thumb-ph"><i class="bi bi-image-alt"></i></span>
+              {% endif %}
+            </div>
+
+            <!-- Info: prod.nama_produk, oi.qty, oi.harga, oi.subtotal -->
+            <div class="item-info">
+              {% if prod.category %}
+                <div class="item-cat">{{ prod.category.nama_kategori }}</div>
+              {% endif %}
+              <div class="item-name">{{ prod.nama_produk }}</div>
+              <div class="item-meta">
+                <span class="price">Rp {{ "{:,.0f}".format(oi.harga) }} / unit</span>
+                <span class="qty">× {{ oi.qty }}</span>
+              </div>
+            </div>
+
+            <!-- Subtotal -->
+            <div class="item-subtotal">
+              Rp {{ "{:,.0f}".format(oi.subtotal if oi.subtotal else oi.harga * oi.qty) }}
+            </div>
+
+          </div>
+          {% endfor %}
+        {% else %}
+          <div style="padding:20px 0; font-size:.85rem; color:#9CA3AF; text-align:center;">
+            <i class="bi bi-box-seam" style="font-size:1.5rem; display:block; margin-bottom:6px; opacity:.3;"></i>
+            Detail item tidak tersedia
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- ── FOOTER ── -->
+      <div class="oc-footer">
+        <div>
+          <div class="oc-total-lbl">Total Pembayaran</div>
+          <div class="oc-total-val">Rp {{ "{:,.0f}".format(order.total_harga) }}</div>
+        </div>
+        <span class="ms-auto d-flex align-items-center gap-2">
+          {% if order.status == 'Pending Payment' and order.metode_pembayaran == 'QRIS' %}
+            <a href="{{ url_for('checkout.payment', order_id=order.id) }}"
+               class="btn-detail-link" style="background:#1D4ED8;">
+              <i class="bi bi-qr-code-scan"></i> Upload Bukti
+            </a>
+          {% endif %}
+
+        </span>
+      </div>
+
+    </div><!-- /order-card -->
+    {% endfor %}
+
+  {% else %}
+  <!-- Empty state -->
+  <div class="empty-state">
+    <div class="ei"><i class="bi bi-bag-x"></i></div>
+    <h4>Belum Ada Pesanan</h4>
+    <p>Anda belum pernah melakukan pembelian. Mulai belanja sekarang!</p>
+    <a href="{{ url_for('user_product.products') }}" class="btn-shop">
+      <i class="bi bi-bag-heart-fill"></i> Mulai Belanja
+    </a>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

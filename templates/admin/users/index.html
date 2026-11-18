@@ -1,0 +1,364 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block title %}Manajemen User — NexShop Admin{% endblock %}
+{% block page_title %}Manajemen User{% endblock %}
+{% block page_subtitle %}Kelola seluruh akun pengguna dan administrator{% endblock %}
+
+{% block breadcrumb %}
+  <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}" class="text-muted text-decoration-none">Admin</a></li>
+  <li class="breadcrumb-item active text-muted">Users</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .admin-card { background:#fff; border:1px solid #E8E8E2; border-radius:16px; overflow:hidden; }
+  .admin-card-header { padding:16px 22px; border-bottom:1px solid #F0F0EA; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+  .admin-card-header h6 { font-family:var(--font-display); font-weight:700; font-size:0.95rem; margin:0; color:#0A0A0A; }
+
+  /* Role badge */
+  .role-badge { display:inline-flex; align-items:center; gap:5px; padding:4px 11px; border-radius:7px; font-family:var(--font-display); font-weight:700; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.04em; }
+  .role-admin { background:#FEE2E2; color:#991B1B; }
+  .role-user  { background:#DBEAFE; color:#1E40AF; }
+
+  /* Stat tiles */
+  .user-stat { background:#fff; border:1px solid #E8E8E2; border-radius:14px; padding:16px 18px; }
+  .user-stat .val { font-family:var(--font-display); font-weight:800; font-size:1.7rem; letter-spacing:-0.04em; color:#0A0A0A; line-height:1; }
+  .user-stat .lbl { font-size:0.7rem; color:#AAA; font-family:var(--font-display); font-weight:600; text-transform:uppercase; letter-spacing:0.07em; margin-top:3px; }
+
+  /* Search & filter */
+  .search-wrap { position:relative; }
+  .search-wrap .si { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#AAA; font-size:0.85rem; pointer-events:none; }
+  .search-input { border:1.5px solid #E8E8E2; border-radius:9px; padding:9px 14px 9px 36px; font-size:0.875rem; background:#FAFAF8; color:#0A0A0A; outline:none; font-family:var(--font-body); transition:border-color 0.2s, box-shadow 0.2s; width:240px; }
+  .search-input:focus { border-color:#0A0A0A; box-shadow:0 0 0 3px rgba(10,10,10,0.06); background:#fff; }
+  .role-select { height:38px; border:1.5px solid #E8E8E2; border-radius:9px; font-size:0.875rem; padding:0 12px; background:#FAFAF8; color:#333; cursor:pointer; }
+
+  .filter-tabs { display:flex; gap:6px; flex-wrap:wrap; }
+  .filter-tab { padding:6px 14px; border-radius:100px; border:1.5px solid #E8E8E2; font-family:var(--font-display); font-weight:600; font-size:0.75rem; color:#888; text-decoration:none; transition:all 0.15s; white-space:nowrap; }
+  .filter-tab:hover { background:#F5F5F0; border-color:#C0C0BA; color:#333; }
+  .filter-tab.active { background:#0A0A0A; border-color:#0A0A0A; color:#E8FF47; }
+  .filter-tab .cnt { background:rgba(255,255,255,0.12); border-radius:100px; padding:1px 6px; font-size:0.68rem; margin-left:3px; }
+  .filter-tab:not(.active) .cnt { background:#F0F0EA; color:#888; }
+
+  /* Table */
+  .user-table { font-size:0.845rem; }
+  .user-table thead th { font-family:var(--font-display); font-weight:700; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.08em; color:#888; background:#FAFAF8; border-bottom:1px solid #EAEAE4; padding:11px 16px; white-space:nowrap; }
+  .user-table tbody td { padding:13px 16px; border-bottom:1px solid #F5F5F0; vertical-align:middle; }
+  .user-table tbody tr:last-child td { border-bottom:none; }
+  .user-table tbody tr:hover { background:#FAFAF8; }
+
+  .user-avatar-sm { width:36px; height:36px; background:#0A0A0A; border-radius:9px; display:flex; align-items:center; justify-content:center; color:#E8FF47; font-weight:700; font-size:0.85rem; flex-shrink:0; }
+
+  /* Order count badge */
+  .order-count-badge { display:inline-flex; align-items:center; gap:5px; background:#F5F5F0; padding:4px 10px; border-radius:7px; font-family:var(--font-display); font-weight:700; font-size:0.78rem; color:#555; }
+
+  /* Action buttons */
+  .act-btn { width:30px; height:30px; border-radius:7px; border:1.5px solid transparent; display:inline-flex; align-items:center; justify-content:center; font-size:0.8rem; text-decoration:none; transition:all 0.15s; cursor:pointer; background:none; }
+  .act-view { border-color:#BFDBFE; color:#2563EB; }
+  .act-view:hover { background:#EFF6FF; color:#1D4ED8; }
+  .act-role { border-color:#FDE68A; color:#92400E; }
+  .act-role:hover { background:#FEF9C3; color:#92400E; }
+  .act-role:disabled { opacity:0.3; cursor:not-allowed; border-color:#E8E8E2; color:#AAA; }
+  .act-del { border-color:#FECACA; color:#DC2626; }
+  .act-del:hover { background:#FEF2F2; color:#B91C1C; }
+  .act-del:disabled { opacity:0.3; cursor:not-allowed; border-color:#E8E8E2; color:#AAA; }
+
+  /* You badge */
+  .you-badge { background:#0A0A0A; color:#E8FF47; font-size:0.62rem; font-weight:800; padding:2px 7px; border-radius:5px; margin-left:6px; font-family:var(--font-display); letter-spacing:0.04em; }
+
+  /* Pagination */
+  .pag-btn { width:34px; height:34px; border-radius:8px; border:1.5px solid #E8E8E2; background:#fff; font-family:var(--font-display); font-weight:600; font-size:0.8rem; color:#555; cursor:pointer; display:flex; align-items:center; justify-content:center; text-decoration:none; transition:all 0.15s; }
+  .pag-btn:hover { background:#F5F5F0; border-color:#C0C0BA; color:#0A0A0A; }
+  .pag-btn.active { background:#0A0A0A; border-color:#0A0A0A; color:#E8FF47; }
+  .pag-btn.disabled { opacity:0.4; pointer-events:none; }
+
+  /* Empty state */
+  .tbl-empty { padding:56px 24px; text-align:center; }
+  .tbl-empty .ei { font-size:3rem; opacity:0.18; margin-bottom:12px; }
+  .tbl-empty h6 { font-family:var(--font-display); font-weight:700; margin-bottom:4px; }
+  .tbl-empty p { font-size:0.82rem; color:#888; margin:0; }
+
+  /* Modal */
+  .modal-content-custom { border:none; border-radius:16px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Stat tiles -->
+<div class="row g-3 mb-4">
+  <div class="col-4">
+    <div class="user-stat">
+      <div style="font-size:1.2rem; margin-bottom:6px;">👥</div>
+      <div class="val">{{ counts.all }}</div>
+      <div class="lbl">Total User</div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="user-stat">
+      <div style="font-size:1.2rem; margin-bottom:6px;">🛡️</div>
+      <div class="val" style="color:#991B1B;">{{ counts.admin }}</div>
+      <div class="lbl">Administrator</div>
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="user-stat">
+      <div style="font-size:1.2rem; margin-bottom:6px;">🛒</div>
+      <div class="val" style="color:#1E40AF;">{{ counts.user }}</div>
+      <div class="lbl">Pelanggan</div>
+    </div>
+  </div>
+</div>
+
+<div class="admin-card">
+
+  <div class="admin-card-header">
+    <div>
+      <h6><i class="bi bi-people-fill me-2" style="color:#888;"></i>Daftar Pengguna</h6>
+      <p style="font-size:0.75rem; color:#AAA; margin:2px 0 0; font-family:var(--font-display);">{{ total }} user ditemukan</p>
+    </div>
+    <form method="GET" action="{{ url_for('user_admin.index') }}" class="d-flex align-items-center gap-2 flex-wrap">
+      <input type="hidden" name="role" value="{{ role_filter }}">
+      <div class="search-wrap">
+        <i class="bi bi-search si"></i>
+        <input type="text" name="search" class="search-input" placeholder="Cari nama, username, email…" value="{{ search }}"/>
+      </div>
+      <button type="submit" class="act-btn act-view" style="width:auto; padding:0 14px; height:38px;"><i class="bi bi-search"></i></button>
+      {% if search %}<a href="{{ url_for('user_admin.index', role=role_filter) }}" class="act-btn act-view" style="width:auto; padding:0 14px; height:38px;"><i class="bi bi-x"></i></a>{% endif %}
+    </form>
+  </div>
+
+  <!-- Role filter tabs -->
+  <div style="padding:14px 22px; border-bottom:1px solid #F0F0EA;">
+    <div class="filter-tabs">
+      <a href="{{ url_for('user_admin.index', search=search) }}" class="filter-tab {{ 'active' if not role_filter }}">Semua <span class="cnt">{{ counts.all }}</span></a>
+      <a href="{{ url_for('user_admin.index', role='admin', search=search) }}" class="filter-tab {{ 'active' if role_filter == 'admin' }}">Admin <span class="cnt">{{ counts.admin }}</span></a>
+      <a href="{{ url_for('user_admin.index', role='user', search=search) }}" class="filter-tab {{ 'active' if role_filter == 'user' }}">User <span class="cnt">{{ counts.user }}</span></a>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table user-table mb-0">
+      <thead>
+        <tr>
+          <th style="width:50px;">ID</th>
+          <th>Nama &amp; Username</th>
+          <th>Email</th>
+          <th style="width:100px;">Role</th>
+          <th style="width:110px; text-align:center;">Total Orders</th>
+          <th style="width:120px;">Joined Date</th>
+          <th style="width:130px; text-align:center;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if users %}
+          {% for user in users %}
+          <tr>
+            <td><code style="background:#F5F5F0; border:1px solid #E8E8E2; border-radius:5px; padding:2px 7px; font-size:0.78rem;">#{{ user.id }}</code></td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <div class="user-avatar-sm">{{ user.nama[0].upper() }}</div>
+                <div>
+                  <div style="font-weight:600; color:#0A0A0A; font-size:0.875rem; display:flex; align-items:center;">
+                    {{ user.nama }}
+                    {% if user.id == current_user.id %}<span class="you-badge">ANDA</span>{% endif %}
+                  </div>
+                  <div style="font-size:0.75rem; color:#888;">@{{ user.username }}</div>
+                </div>
+              </div>
+            </td>
+            <td style="font-size:0.84rem; color:#555;">{{ user.email }}</td>
+            <td>
+              {% if user.role == 'admin' %}
+                <span class="role-badge role-admin"><i class="bi bi-shield-fill-check"></i> Admin</span>
+              {% else %}
+                <span class="role-badge role-user"><i class="bi bi-person-fill"></i> User</span>
+              {% endif %}
+            </td>
+            <td style="text-align:center;">
+              <span class="order-count-badge">
+                <i class="bi bi-bag"></i> {{ order_counts.get(user.id, 0) }}
+              </span>
+            </td>
+            <td style="font-size:0.8rem; color:#888;">
+              {% if user.created_at %}{{ user.created_at.strftime('%d %b %Y') }}{% else %}—{% endif %}
+            </td>
+            <td>
+              <div class="d-flex align-items-center justify-content-center gap-1">
+                <!-- View -->
+                <a href="{{ url_for('user_admin.detail', id=user.id) }}" class="act-btn act-view" title="Lihat Detail">
+                  <i class="bi bi-eye"></i>
+                </a>
+
+                <!-- Change role -->
+                <button type="button"
+                        class="act-btn act-role"
+                        title="{{ 'Tidak dapat mengubah role sendiri' if user.id == current_user.id else 'Ubah Role' }}"
+                        {{ 'disabled' if user.id == current_user.id }}
+                        onclick="openRoleModal({{ user.id }}, '{{ user.nama }}', '{{ user.role }}')">
+                  <i class="bi bi-shield-lock"></i>
+                </button>
+
+                <!-- Delete -->
+                <button type="button"
+                        class="act-btn act-del"
+                        title="{{ 'Tidak dapat menghapus akun sendiri' if user.id == current_user.id else 'Hapus User' }}"
+                        {{ 'disabled' if user.id == current_user.id }}
+                        onclick="confirmDeleteUser({{ user.id }}, '{{ user.nama }}')">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="7">
+            <div class="tbl-empty">
+              <div class="ei"><i class="bi bi-people"></i></div>
+              <h6>{% if search %}User "{{ search }}" tidak ditemukan{% else %}Belum ada user{% endif %}</h6>
+              <p>{% if search %}Coba kata kunci lain.{% else %}Daftar user akan tampil di sini.{% endif %}</p>
+            </div>
+          </td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if total_pages > 1 %}
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 px-4 py-3" style="border-top:1px solid #F0F0EA;">
+    <span style="font-size:0.8rem; color:#888;">Halaman <strong style="color:#333; font-family:var(--font-display);">{{ page }}</strong> dari <strong style="color:#333; font-family:var(--font-display);">{{ total_pages }}</strong></span>
+    <div class="d-flex gap-1">
+      <a href="{{ url_for('user_admin.index', page=page-1, search=search, role=role_filter) if page > 1 else '#' }}" class="pag-btn {{ 'disabled' if page <= 1 }}"><i class="bi bi-chevron-left" style="font-size:0.7rem;"></i></a>
+      {% for p in range(1, total_pages + 1) %}
+        {% if p == page or (p >= page-2 and p <= page+2) or p == 1 or p == total_pages %}
+          <a href="{{ url_for('user_admin.index', page=p, search=search, role=role_filter) }}" class="pag-btn {{ 'active' if p == page }}">{{ p }}</a>
+        {% elif p == page-3 or p == page+3 %}
+          <span class="pag-btn disabled">…</span>
+        {% endif %}
+      {% endfor %}
+      <a href="{{ url_for('user_admin.index', page=page+1, search=search, role=role_filter) if page < total_pages else '#' }}" class="pag-btn {{ 'disabled' if page >= total_pages }}"><i class="bi bi-chevron-right" style="font-size:0.7rem;"></i></a>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- ════════════════════════════════════════
+     CHANGE ROLE MODAL
+════════════════════════════════════════ -->
+<div class="modal fade" id="roleModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
+    <div class="modal-content modal-content-custom">
+      <div class="modal-body p-4">
+        <div class="text-center mb-3">
+          <div style="width:60px; height:60px; background:#FEF9C3; border-radius:15px; display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-size:1.6rem; color:#92400E;">
+            <i class="bi bi-shield-lock-fill"></i>
+          </div>
+          <h5 style="font-family:var(--font-display); font-weight:700; margin-bottom:4px;">Ubah Role Pengguna</h5>
+          <p style="font-size:0.85rem; color:#666; margin:0;">
+            Mengubah role untuk <strong id="roleModalName"></strong>
+          </p>
+        </div>
+
+        <form id="roleForm" method="POST">
+          <div class="d-flex flex-column gap-2 mb-3">
+            <label style="cursor:pointer;">
+              <input type="radio" name="role" value="user" id="roleUser" style="display:none;" onchange="updateRoleSelection()">
+              <div class="role-option" data-role="user" style="border:2px solid #E8E8E2; border-radius:10px; padding:12px 16px; display:flex; align-items:center; gap:12px; transition:all 0.15s;">
+                <div style="width:36px; height:36px; background:#DBEAFE; border-radius:9px; display:flex; align-items:center; justify-content:center; color:#1E40AF;"><i class="bi bi-person-fill"></i></div>
+                <div>
+                  <div style="font-family:var(--font-display); font-weight:700; font-size:0.88rem;">User</div>
+                  <div style="font-size:0.75rem; color:#888;">Akses sebagai pelanggan biasa</div>
+                </div>
+              </div>
+            </label>
+            <label style="cursor:pointer;">
+              <input type="radio" name="role" value="admin" id="roleAdmin" style="display:none;" onchange="updateRoleSelection()">
+              <div class="role-option" data-role="admin" style="border:2px solid #E8E8E2; border-radius:10px; padding:12px 16px; display:flex; align-items:center; gap:12px; transition:all 0.15s;">
+                <div style="width:36px; height:36px; background:#FEE2E2; border-radius:9px; display:flex; align-items:center; justify-content:center; color:#991B1B;"><i class="bi bi-shield-fill-check"></i></div>
+                <div>
+                  <div style="font-family:var(--font-display); font-weight:700; font-size:0.88rem;">Admin</div>
+                  <div style="font-size:0.75rem; color:#888;">Akses penuh ke panel admin</div>
+                </div>
+              </div>
+            </label>
+          </div>
+
+          <div class="d-flex gap-2">
+            <button type="button" class="btn w-50" data-bs-dismiss="modal"
+              style="border:1.5px solid #E8E8E2; border-radius:9px; font-family:var(--font-display); font-weight:600; font-size:0.875rem;">Batal</button>
+            <button type="submit" class="w-50"
+              style="background:#0A0A0A; color:#E8FF47; border:none; border-radius:9px; font-family:var(--font-display); font-weight:700; font-size:0.875rem; padding:10px; cursor:pointer;">
+              Simpan
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     DELETE USER MODAL
+════════════════════════════════════════ -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width:400px;">
+    <div class="modal-content modal-content-custom">
+      <div class="modal-body p-4 text-center">
+        <div style="width:64px; height:64px; background:#FEE2E2; border-radius:16px; display:flex; align-items:center; justify-content:center; margin:0 auto 20px; font-size:1.8rem; color:#DC2626;">
+          <i class="bi bi-person-x-fill"></i>
+        </div>
+        <h5 style="font-family:var(--font-display); font-weight:700; margin-bottom:8px;">Hapus User?</h5>
+        <p style="font-size:0.875rem; color:#666; margin-bottom:6px;">Anda akan menghapus akun:</p>
+        <p id="deleteUserName" style="font-family:var(--font-display); font-weight:700; background:#F5F5F0; padding:8px 16px; border-radius:8px; margin-bottom:20px;"></p>
+        <p style="font-size:0.8rem; color:#DC2626; margin-bottom:24px;"><i class="bi bi-exclamation-triangle-fill me-1"></i>Tindakan ini tidak dapat dibatalkan.</p>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn w-50" data-bs-dismiss="modal" style="border:1.5px solid #E8E8E2; border-radius:9px; font-family:var(--font-display); font-weight:600; font-size:0.875rem;">Batal</button>
+          <form id="deleteUserForm" method="POST" class="w-50 m-0">
+            <button type="submit" style="width:100%; background:#DC2626; color:#fff; border:none; border-radius:9px; font-family:var(--font-display); font-weight:700; font-size:0.875rem; padding:10px; cursor:pointer;">
+              <i class="bi bi-trash3 me-1"></i> Hapus
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // ── Change role modal ──────────────────────────
+  function openRoleModal(userId, userName, currentRole) {
+    document.getElementById('roleModalName').textContent = userName;
+    document.getElementById('roleForm').action = `/admin/users/${userId}/change-role`;
+
+    document.getElementById('roleUser').checked  = (currentRole === 'user');
+    document.getElementById('roleAdmin').checked = (currentRole === 'admin');
+    updateRoleSelection();
+
+    new bootstrap.Modal(document.getElementById('roleModal')).show();
+  }
+
+  function updateRoleSelection() {
+    document.querySelectorAll('.role-option').forEach(el => {
+      const role  = el.dataset.role;
+      const input = document.getElementById('role' + role.charAt(0).toUpperCase() + role.slice(1));
+      if (input && input.checked) {
+        el.style.borderColor = '#0A0A0A';
+        el.style.background  = '#F5F5F0';
+      } else {
+        el.style.borderColor = '#E8E8E2';
+        el.style.background  = '#fff';
+      }
+    });
+  }
+
+  // ── Delete user modal ──────────────────────────
+  function confirmDeleteUser(userId, userName) {
+    document.getElementById('deleteUserName').textContent = userName;
+    document.getElementById('deleteUserForm').action = `/admin/users/${userId}/delete`;
+    new bootstrap.Modal(document.getElementById('deleteUserModal')).show();
+  }
+</script>
+{% endblock %}

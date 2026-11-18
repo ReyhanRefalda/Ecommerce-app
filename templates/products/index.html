@@ -1,0 +1,631 @@
+{% extends 'layouts/base.html' %}
+{% block title %}Semua Produk — NexShop{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ══════════════════════════════════════
+     PAGE HERO
+  ══════════════════════════════════════ */
+  .products-hero {
+    background: #0A0A0A;
+    padding: 52px 0 64px;
+    position: relative;
+    overflow: hidden;
+  }
+  .products-hero::before {
+    content: '';
+    position: absolute;
+    top: -40%; right: -15%;
+    width: 500px; height: 500px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(232,255,71,0.08) 0%, transparent 65%);
+    pointer-events: none;
+  }
+  .products-hero::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 0; right: 0;
+    height: 36px;
+    background: #F4F5F7;
+    border-radius: 36px 36px 0 0;
+  }
+  .products-hero h1 {
+    font-family: var(--font-display, 'Plus Jakarta Sans', sans-serif);
+    font-weight: 800;
+    font-size: clamp(2rem, 4vw, 3rem);
+    letter-spacing: -0.04em;
+    color: #fff;
+    margin-bottom: 8px;
+    position: relative; z-index: 1;
+  }
+  .products-hero h1 em { color: #E8FF47; font-style: normal; }
+  .products-hero p {
+    color: rgba(255,255,255,0.45);
+    font-size: 0.9rem;
+    margin: 0;
+    position: relative; z-index: 1;
+  }
+
+  /* ══════════════════════════════════════
+     TOOLBAR
+  ══════════════════════════════════════ */
+  .toolbar-card {
+    background: #fff;
+    border: 1px solid #E5E7EB;
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .search-wrap { position: relative; flex: 1; min-width: 180px; }
+  .search-wrap .si { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9CA3AF; font-size: 0.85rem; pointer-events: none; }
+  .tb-input {
+    width: 100%;
+    border: 1.5px solid #E5E7EB;
+    border-radius: 10px;
+    padding: 10px 14px 10px 36px;
+    font-size: 0.875rem;
+    background: #F9FAFB;
+    color: #111827;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .tb-input:focus { border-color: #111827; box-shadow: 0 0 0 3px rgba(17,24,39,0.06); background: #fff; }
+  .tb-select {
+    border: 1.5px solid #E5E7EB;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 0.875rem;
+    background: #F9FAFB;
+    color: #374151;
+    cursor: pointer;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.2s;
+    min-width: 140px;
+  }
+  .tb-select:focus { border-color: #111827; }
+  .btn-search {
+    background: #111827;
+    color: #E8FF47;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-search:hover { background: #1F2937; }
+  .btn-reset {
+    border: 1.5px solid #E5E7EB;
+    border-radius: 10px;
+    padding: 9px 14px;
+    font-size: 0.82rem;
+    background: #fff;
+    color: #6B7280;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex; align-items: center; gap: 5px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-reset:hover { background: #F3F4F6; color: #111827; }
+
+  /* ══════════════════════════════════════
+     CATEGORY PILLS
+  ══════════════════════════════════════ */
+  .cat-pills { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 24px; }
+  .cat-pill {
+    padding: 7px 16px;
+    border-radius: 100px;
+    border: 1.5px solid #E5E7EB;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.78rem;
+    color: #6B7280;
+    text-decoration: none;
+    transition: all 0.15s;
+    white-space: nowrap;
+    background: #fff;
+  }
+  .cat-pill:hover { border-color: #9CA3AF; color: #111827; background: #F9FAFB; }
+  .cat-pill.active { background: #111827; border-color: #111827; color: #E8FF47; }
+
+  /* ══════════════════════════════════════
+     RESULTS BAR
+  ══════════════════════════════════════ */
+  .results-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 20px;
+    font-size: 0.82rem;
+    color: #6B7280;
+  }
+  .results-bar strong { color: #111827; font-family: inherit; }
+
+  /* ══════════════════════════════════════
+     PRODUCT CARD
+  ══════════════════════════════════════ */
+  .card-product {
+    background: #fff;
+    border: 1px solid #E5E7EB;
+    border-radius: 18px;
+    overflow: hidden;
+    transition: transform 0.22s cubic-bezier(0.4,0,0.2,1), box-shadow 0.22s;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  .card-product:hover { transform: translateY(-5px); box-shadow: 0 20px 48px rgba(0,0,0,0.09); }
+
+  .product-img-wrap {
+    aspect-ratio: 1/1;
+    overflow: hidden;
+    background: #F9FAFB;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .product-img-wrap img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: transform 0.42s ease;
+  }
+  .card-product:hover .product-img-wrap img { transform: scale(1.06); }
+  .no-img {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 3rem; color: #D1D5DB;
+  }
+
+  /* Stock overlays */
+  .stock-overlay {
+    position: absolute;
+    top: 10px; left: 10px;
+    font-family: inherit;
+    font-size: 0.67rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 7px;
+    z-index: 2;
+  }
+  .overlay-ready { background: rgba(22,163,74,0.92); color: #fff; }
+  .overlay-low   { background: rgba(234,179,8,0.92); color: #0A0A0A; }
+  .overlay-out   { background: rgba(220,38,38,0.92); color: #fff; }
+
+  /* Card body */
+  .card-body-custom {
+    padding: 13px 14px 15px;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+  .product-cat {
+    font-size: 0.67rem;
+    color: #9CA3AF;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 4px;
+  }
+  .product-name {
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: #111827;
+    line-height: 1.35;
+    margin-bottom: 6px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.4em;
+  }
+  .product-price {
+    font-family: inherit;
+    font-weight: 800;
+    font-size: 1.05rem;
+    letter-spacing: -0.03em;
+    color: #111827;
+    margin-bottom: 4px;
+  }
+  .product-stock-row {
+    font-size: 0.7rem;
+    color: #9CA3AF;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-bottom: 12px;
+  }
+  .product-stock-row.ok   { color: #16A34A; }
+  .product-stock-row.low  { color: #D97706; }
+  .product-stock-row.out  { color: #DC2626; }
+
+  /* ── 3 Action buttons ── */
+  .card-actions { display: flex; gap: 6px; margin-top: auto; }
+
+  .btn-detail {
+    background: #F3F4F6;
+    color: #374151;
+    border: 1.5px solid #E5E7EB;
+    border-radius: 8px;
+    padding: 8px 11px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-decoration: none;
+    display: inline-flex; align-items: center; gap: 5px;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .btn-detail:hover { background: #E5E7EB; color: #111827; }
+
+  .btn-cart {
+    flex: 1;
+    background: #fff;
+    color: #111827;
+    border: 1.5px solid #111827;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.75rem;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    text-decoration: none;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-cart:hover:not(:disabled) { background: #111827; color: #E8FF47; }
+  .btn-cart:disabled { background: #F9FAFB; color: #D1D5DB; border-color: #E5E7EB; cursor: not-allowed; }
+
+  .btn-buynow {
+    flex: 1;
+    background: #111827;
+    color: #E8FF47;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.75rem;
+    cursor: pointer;
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    text-decoration: none;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-buynow:hover:not(:disabled) { background: #1F2937; color: #E8FF47; }
+  .btn-buynow:disabled { background: #F9FAFB; color: #D1D5DB; cursor: not-allowed; }
+
+  .btn-outofstock {
+    flex: 1;
+    background: #F9FAFB;
+    color: #9CA3AF;
+    border: 1.5px solid #E5E7EB;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-family: inherit;
+    font-weight: 700;
+    font-size: 0.75rem;
+    cursor: not-allowed;
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    white-space: nowrap;
+  }
+
+  .login-hint {
+    font-size: 0.68rem;
+    color: #9CA3AF;
+    text-align: center;
+    margin-top: 5px;
+  }
+  .login-hint a { color: #2563EB; font-weight: 700; text-decoration: none; }
+
+  /* ══════════════════════════════════════
+     PAGINATION
+  ══════════════════════════════════════ */
+  .pag-wrap { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: 44px; }
+  .pag-info { font-size: 0.8rem; color: #6B7280; }
+  .pag-info strong { color: #111827; font-family: inherit; }
+  .pag-btns { display: flex; gap: 5px; flex-wrap: wrap; }
+  .pb {
+    width: 36px; height: 36px;
+    border-radius: 9px;
+    border: 1.5px solid #E5E7EB;
+    background: #fff;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.82rem;
+    color: #374151;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+  .pb:hover { background: #F3F4F6; border-color: #9CA3AF; color: #111827; }
+  .pb.active { background: #111827; border-color: #111827; color: #E8FF47; }
+  .pb.disabled { opacity: 0.35; pointer-events: none; }
+
+  /* ══════════════════════════════════════
+     EMPTY STATE
+  ══════════════════════════════════════ */
+  .empty-state {
+    text-align: center;
+    padding: 80px 24px;
+    background: #fff;
+    border: 1px solid #E5E7EB;
+    border-radius: 20px;
+  }
+  .empty-state .ei { font-size: 4rem; opacity: 0.15; margin-bottom: 18px; }
+  .empty-state h4 { font-family: inherit; font-weight: 800; font-size: 1.2rem; color: #111827; margin-bottom: 8px; }
+  .empty-state p { font-size: 0.875rem; color: #6B7280; margin-bottom: 20px; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ── Hero ── -->
+<div class="products-hero">
+  <div class="container">
+    <h1>Semua <em>Produk</em></h1>
+    <p>{{ pagination.total }} produk tersedia &mdash; temukan yang kamu suka</p>
+  </div>
+</div>
+
+<div class="container py-4">
+
+  <!-- ── Toolbar: Search + Sort ── -->
+  <form method="GET" action="{{ url_for('user_product.products') }}" id="filterForm">
+    <div class="toolbar-card">
+      <!-- Search -->
+      <div class="search-wrap">
+        <i class="bi bi-search si"></i>
+        <input type="text" name="search" class="tb-input"
+               placeholder="Cari nama produk…" value="{{ search }}" autocomplete="off"/>
+      </div>
+
+      <!-- Category hidden (dipakai dari pills) -->
+      <input type="hidden" name="category_id" id="hiddenCatId" value="{{ cat_id }}"/>
+
+      <!-- Sort -->
+      <select name="sort" class="tb-select">
+        <option value="terbaru"    {% if sort == 'terbaru'    %}selected{% endif %}>Terbaru</option>
+        <option value="harga_asc"  {% if sort == 'harga_asc'  %}selected{% endif %}>Harga Termurah</option>
+        <option value="harga_desc" {% if sort == 'harga_desc' %}selected{% endif %}>Harga Tertinggi</option>
+        <option value="nama_az"    {% if sort == 'nama_az'    %}selected{% endif %}>Nama A–Z</option>
+      </select>
+
+      <!-- Buttons -->
+      <button type="submit" class="btn-search">
+        <i class="bi bi-search"></i>
+        <span class="d-none d-sm-inline">Cari</span>
+      </button>
+
+      {% if search or cat_id %}
+      <a href="{{ url_for('user_product.products') }}" class="btn-reset">
+        <i class="bi bi-x-circle"></i>
+        <span class="d-none d-sm-inline">Reset</span>
+      </a>c
+      {% endif %}
+    </div>
+  </form>
+
+  <!-- ── Category pills ── -->
+  {% if categories %}
+  <div class="cat-pills">
+    <a href="{{ url_for('user_product.products', search=search, sort=sort) }}"
+       class="cat-pill {% if not cat_id %}active{% endif %}">Semua</a>
+    {% for cat in categories %}
+    <a href="{{ url_for('user_product.products', category_id=cat.id, search=search, sort=sort) }}"
+       class="cat-pill {% if cat_id == cat.id|string %}active{% endif %}">
+      {{ cat.nama_kategori }}
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- ── Results bar ── -->
+  <div class="results-bar">
+    <span>
+      Menampilkan
+      <strong>{{ products|length }}</strong>
+      dari
+      <strong>{{ pagination.total }}</strong>
+      produk
+      {% if search %} untuk "<strong>{{ search }}</strong>"{% endif %}
+      {% if cat_id %}
+        {% for cat in categories %}{% if cat.id|string == cat_id %} di kategori <strong>{{ cat.nama_kategori }}</strong>{% endif %}{% endfor %}
+      {% endif %}
+    </span>
+    <span style="font-size:0.78rem;">
+      Halaman <strong>{{ pagination.page }}</strong> / <strong>{{ pagination.pages }}</strong>
+    </span>
+  </div>
+
+  <!-- ── Product grid ── -->
+  {% if products %}
+  <div class="row g-4">
+    {% for product in products %}
+    <div class="col-6 col-md-4 col-lg-3">
+      <div class="card-product">
+
+        <!-- Gambar + Badge -->
+        <div class="product-img-wrap">
+          {% if product.gambar %}
+            <img src="{{ url_for('static', filename='uploads/' + product.gambar) }}"
+                 alt="{{ product.nama_produk }}" loading="lazy"/>
+          {% else %}
+            <div class="no-img"><i class="bi bi-image-alt"></i></div>
+          {% endif %}
+
+          {% if product.stok == 0 %}
+            <span class="stock-overlay overlay-out">Sold Out</span>
+          {% elif product.stok <= 5 %}
+            <span class="stock-overlay overlay-low">Sisa {{ product.stok }}</span>
+          {% else %}
+            <span class="stock-overlay overlay-ready">Ready Stock</span>
+          {% endif %}
+        </div>
+
+        <!-- Body -->
+        <div class="card-body-custom">
+          {% if product.category %}
+            <div class="product-cat">{{ product.category.nama_kategori }}</div>
+          {% endif %}
+
+          <div class="product-name">{{ product.nama_produk }}</div>
+          <div class="product-price">Rp {{ "{:,.0f}".format(product.harga) }}</div>
+
+          <div class="product-stock-row
+            {% if product.stok == 0 %}out{% elif product.stok <= 5 %}low{% else %}ok{% endif %}">
+            {% if product.stok == 0 %}
+              <i class="bi bi-x-circle-fill" style="font-size:0.65rem;"></i> Stok habis
+            {% elif product.stok <= 5 %}
+              <i class="bi bi-exclamation-circle-fill" style="font-size:0.65rem;"></i> Sisa {{ product.stok }} unit
+            {% else %}
+              <i class="bi bi-check-circle-fill" style="font-size:0.65rem;"></i> Tersedia ({{ product.stok }})
+            {% endif %}
+          </div>
+
+          <!-- ════ 3 ACTION BUTTONS ════ -->
+          {% if current_user.is_authenticated %}
+            <div class="card-actions">
+              <!-- 1. Detail -->
+              <a href="{{ url_for('user_product.product_detail', id=product.id) }}"
+                 class="btn-detail" title="Lihat Detail">
+                <i class="bi bi-eye"></i>
+              </a>
+
+              {% if product.stok > 0 %}
+                <!-- 2. Add to Cart -->
+                <form action="{{ url_for('cart.add', id=product.id) }}" method="POST"
+                      class="m-0" style="flex:1; display:flex;">
+                  <input type="hidden" name="qty" value="1">
+                  <button type="submit" class="btn-cart w-100" title="Tambah ke keranjang">
+                    <i class="bi bi-bag-plus"></i>
+                    <span class="d-none d-sm-inline">Cart</span>
+                  </button>
+                </form>
+
+                <!-- 3. Buy Now -->
+                <form action="{{ url_for('user_product.buy_now', id=product.id) }}" method="POST"
+                      class="m-0" style="flex:1; display:flex;">
+                  <input type="hidden" name="qty" value="1">
+                  <button type="submit" class="btn-buynow w-100" title="Beli langsung">
+                    <i class="bi bi-lightning-charge-fill"></i>
+                    <span class="d-none d-sm-inline">Beli</span>
+                  </button>
+                </form>
+
+              {% else %}
+                <!-- Stok habis — satu tombol penuh disabled -->
+                <button class="btn-outofstock" style="flex:1;" disabled>
+                  <i class="bi bi-slash-circle"></i> Sold Out
+                </button>
+              {% endif %}
+            </div>
+
+          {% else %}
+            <!-- Belum login -->
+            <div class="card-actions">
+              <a href="{{ url_for('user_product.product_detail', id=product.id) }}" class="btn-detail">
+                <i class="bi bi-eye"></i>
+              </a>
+              {% if product.stok > 0 %}
+                <a href="{{ url_for('auth.login') }}" class="btn-cart" style="flex:1;">
+                  <i class="bi bi-bag-plus"></i><span class="d-none d-sm-inline">Cart</span>
+                </a>
+                <a href="{{ url_for('auth.login') }}" class="btn-buynow" style="flex:1;">
+                  <i class="bi bi-lightning-charge-fill"></i><span class="d-none d-sm-inline">Beli</span>
+                </a>
+              {% else %}
+                <span class="btn-outofstock" style="flex:1;">
+                  <i class="bi bi-slash-circle"></i> Sold Out
+                </span>
+              {% endif %}
+            </div>
+            {% if product.stok > 0 %}
+              <p class="login-hint mt-1"><a href="{{ url_for('auth.login') }}">Login</a> untuk belanja</p>
+            {% endif %}
+          {% endif %}
+
+        </div><!-- /card-body-custom -->
+      </div><!-- /card-product -->
+    </div><!-- /col -->
+    {% endfor %}
+  </div><!-- /row -->
+
+  <!-- ── Pagination ── -->
+  {% if pagination.pages > 1 %}
+  <div class="pag-wrap">
+    <span class="pag-info">
+      Halaman <strong>{{ pagination.page }}</strong> dari <strong>{{ pagination.pages }}</strong>
+      (<strong>{{ pagination.total }}</strong> produk)
+    </span>
+    <nav class="pag-btns" aria-label="Halaman produk">
+      <!-- Prev -->
+      <a href="{{ url_for('user_product.products', page=pagination.prev_num, search=search, sort=sort, category_id=cat_id) if pagination.has_prev else '#' }}"
+         class="pb {% if not pagination.has_prev %}disabled{% endif %}" aria-label="Sebelumnya">
+        <i class="bi bi-chevron-left" style="font-size:0.7rem;"></i>
+      </a>
+
+      {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if p %}
+          <a href="{{ url_for('user_product.products', page=p, search=search, sort=sort, category_id=cat_id) }}"
+             class="pb {% if p == pagination.page %}active{% endif %}">{{ p }}</a>
+        {% else %}
+          <span class="pb disabled" style="font-size:0.65rem;">···</span>
+        {% endif %}
+      {% endfor %}
+
+      <!-- Next -->
+      <a href="{{ url_for('user_product.products', page=pagination.next_num, search=search, sort=sort, category_id=cat_id) if pagination.has_next else '#' }}"
+         class="pb {% if not pagination.has_next %}disabled{% endif %}" aria-label="Berikutnya">
+        <i class="bi bi-chevron-right" style="font-size:0.7rem;"></i>
+      </a>
+    </nav>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <!-- ── Empty state ── -->
+  <div class="empty-state">
+    <div class="ei"><i class="bi bi-search"></i></div>
+    <h4>
+      {% if search %}
+        Produk "{{ search }}" tidak ditemukan
+      {% else %}
+        Belum ada produk
+      {% endif %}
+    </h4>
+    <p>
+      {% if search or cat_id %}
+        Coba ubah kata kunci atau pilih kategori yang lain.
+      {% else %}
+        Produk akan segera tersedia di toko kami.
+      {% endif %}
+    </p>
+    {% if search or cat_id %}
+      <a href="{{ url_for('user_product.products') }}" class="btn-search" style="display:inline-flex; margin:0 auto;">
+        <i class="bi bi-arrow-left"></i> Lihat semua produk
+      </a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div><!-- /container -->
+{% endblock %}

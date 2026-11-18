@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>{% block title %}NexShop — Modern E-Commerce{% endblock %}</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet"/>
+
+  <style>
+    :root {
+      --primary:       #0A0A0A;
+      --accent:        #E8FF47;
+      --accent-dark:   #C8E000;
+      --surface:       #F5F5F0;
+      --surface-2:     #EEEEE8;
+      --border:        #E0E0D8;
+      --text-primary:  #0A0A0A;
+      --text-muted:    #6B6B65;
+      --white:         #FFFFFF;
+      --danger:        #FF4444;
+      --success:       #2ECC71;
+      --nav-height:    70px;
+      --font-display:  'Syne', sans-serif;
+      --font-body:     'DM Sans', sans-serif;
+      --radius:        12px;
+      --radius-lg:     20px;
+      --shadow:        0 4px 24px rgba(0,0,0,0.06);
+      --shadow-lg:     0 12px 48px rgba(0,0,0,0.10);
+      --transition:    0.2s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--surface);
+      color: var(--text-primary);
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    h1, h2, h3, h4, h5, h6,
+    .font-display { font-family: var(--font-display); }
+
+    /* ── Navbar ── */
+    .navbar-main {
+      position: sticky;
+      top: 0;
+      z-index: 1030;
+      height: var(--nav-height);
+      background: rgba(245,245,240,0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .navbar-brand-text {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1.4rem;
+      letter-spacing: -0.04em;
+      color: var(--primary);
+    }
+    .navbar-brand-text span { color: var(--accent-dark); }
+
+    .nav-link-main {
+      font-family: var(--font-display);
+      font-weight: 500;
+      font-size: 0.9rem;
+      letter-spacing: 0.02em;
+      color: var(--text-primary) !important;
+      padding: 6px 14px !important;
+      border-radius: 8px;
+      transition: background var(--transition);
+    }
+    .nav-link-main:hover { background: var(--surface-2); }
+    .nav-link-main.active {
+      background: var(--primary);
+      color: var(--accent) !important;
+    }
+
+    .btn-cart {
+      position: relative;
+      background: var(--primary);
+      color: var(--accent);
+      border: none;
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      transition: transform var(--transition), background var(--transition);
+    }
+    .btn-cart:hover { background: #222; transform: translateY(-1px); }
+    .btn-cart .badge {
+      position: absolute;
+      top: -5px; right: -5px;
+      background: var(--danger);
+      color: #fff;
+      font-size: 0.6rem;
+      width: 17px; height: 17px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display);
+      font-weight: 700;
+      border: 2px solid var(--surface);
+    }
+
+    /* ── Buttons ── */
+    .btn-primary-custom {
+      background: var(--primary);
+      color: var(--accent);
+      border: 2px solid var(--primary);
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 0.9rem;
+      letter-spacing: 0.02em;
+      padding: 10px 24px;
+      border-radius: 10px;
+      transition: all var(--transition);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+    .btn-primary-custom:hover {
+      background: var(--accent);
+      color: var(--primary);
+      border-color: var(--accent);
+    }
+
+    .btn-outline-custom {
+      background: transparent;
+      color: var(--primary);
+      border: 2px solid var(--primary);
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 0.9rem;
+      letter-spacing: 0.02em;
+      padding: 10px 24px;
+      border-radius: 10px;
+      transition: all var(--transition);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+    }
+    .btn-outline-custom:hover {
+      background: var(--primary);
+      color: var(--accent);
+    }
+
+    /* ── Cards ── */
+    .card-product {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      transition: transform var(--transition), box-shadow var(--transition);
+    }
+    .card-product:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+    .card-product .product-img-wrap {
+      aspect-ratio: 1/1;
+      overflow: hidden;
+      background: var(--surface-2);
+    }
+    .card-product .product-img-wrap img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      transition: transform 0.4s ease;
+    }
+    .card-product:hover .product-img-wrap img { transform: scale(1.05); }
+    .card-product .card-body { padding: 16px; }
+    .card-product .product-name {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .card-product .product-price {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--primary);
+    }
+    .card-product .product-category {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 500;
+    }
+
+    /* ── Tag/Badge ── */
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--surface-2);
+      color: var(--text-muted);
+      border-radius: 6px;
+      padding: 3px 10px;
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+    .tag-accent {
+      background: var(--accent);
+      color: var(--primary);
+      font-family: var(--font-display);
+      font-weight: 700;
+    }
+
+    /* ── Alert Flash ── */
+    .alert-flash {
+      border: none;
+      border-radius: var(--radius);
+      font-size: 0.88rem;
+      font-weight: 500;
+      padding: 12px 18px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .alert-flash.success { background: #DCFCE7; color: #166534; }
+    .alert-flash.error   { background: #FEE2E2; color: #991B1B; }
+    .alert-flash.info    { background: #DBEAFE; color: #1E40AF; }
+
+    /* ── Section Titles ── */
+    .section-eyebrow {
+      font-family: var(--font-display);
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(1.8rem, 3vw, 2.6rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      color: var(--text-primary);
+    }
+
+    /* ── Footer ── */
+    .footer-main {
+      background: var(--primary);
+      color: rgba(255,255,255,0.6);
+      padding: 60px 0 30px;
+    }
+    .footer-main .footer-brand {
+      font-family: var(--font-display);
+      font-weight: 800;
+      font-size: 1.5rem;
+      letter-spacing: -0.04em;
+      color: var(--white);
+    }
+    .footer-main .footer-brand span { color: var(--accent); }
+    .footer-main h6 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 0.8rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+      margin-bottom: 16px;
+    }
+    .footer-main a {
+      color: rgba(255,255,255,0.65);
+      text-decoration: none;
+      font-size: 0.9rem;
+      line-height: 2;
+      transition: color var(--transition);
+      display: block;
+    }
+    .footer-main a:hover { color: var(--accent); }
+    .footer-divider {
+      border-color: rgba(255,255,255,0.08);
+      margin: 40px 0 24px;
+    }
+    .footer-copy {
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.35);
+    }
+
+    /* ── Utilities ── */
+    .text-accent { color: var(--accent-dark) !important; }
+    .bg-accent { background: var(--accent) !important; }
+    .price-format::before { content: 'Rp '; }
+  </style>
+
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════
+       NAVBAR
+  ════════════════════════════════════════ -->
+  <nav class="navbar navbar-main navbar-expand-lg">
+    <div class="container">
+
+      <!-- Brand -->
+      <a class="navbar-brand-text me-4 text-decoration-none" href="{{ url_for('landing.index') }}">
+        Nex<span>Shop</span>
+      </a>
+
+      <!-- Toggler -->
+      <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav">
+        <i class="bi bi-list fs-4"></i>
+      </button>
+
+      <div class="collapse navbar-collapse" id="mainNav">
+
+        <!-- Left links -->
+        <ul class="navbar-nav me-auto gap-1">
+          <li class="nav-item">
+            <a class="nav-link-main {% if request.endpoint == 'landing.index' %}active{% endif %}"
+               href="{{ url_for('landing.index') }}">Beranda</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link-main {% if request.endpoint == 'user_product.products' %}active{% endif %}"
+               href="{{ url_for('user_product.products') }}">Produk</a>
+          </li> 
+        </ul>
+
+        <!-- Right actions -->
+        <div class="d-flex align-items-center gap-2">
+
+          {% if current_user.is_authenticated %}
+            <!-- Cart -->
+                 {% if current_user.role == 'user' %}
+            {% include 'partials/_notif_beli.html' %}
+          {% endif %}
+            <a href="{{ url_for('cart.index') }}" class="btn-cart text-decoration-none">
+              <i class="bi bi-bag"></i>
+              {% if cart_count and cart_count > 0 %}
+                <span class="badge">{{ cart_count }}</span>
+              {% endif %}
+            </a>
+
+            <!-- User dropdown -->
+            <div class="dropdown">
+              <button class="btn-outline-custom py-2 px-3 dropdown-toggle border-0" data-bs-toggle="dropdown">
+                <i class="bi bi-person-circle"></i>
+                <span class="d-none d-md-inline"> {{ current_user.nama.split()[0] }}  
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end border border-1 shadow-sm mt-2" style="border-radius: var(--radius); min-width: 200px;">
+                <li class="px-3 py-2">
+                  <p class="mb-0 fw-600 small" style="font-family: var(--font-display); font-weight: 600;">{{ current_user.name }}</p>
+                  <p class="mb-0 text-muted" style="font-size: 0.78rem;">{{ current_user.email }}</p>
+                </li>
+                <li><hr class="dropdown-divider my-1"></li>
+                <li><a class="dropdown-item small py-2" href="{{ url_for('order.order_history') }}"><i class="bi bi-clock-history me-2"></i>Pesanan Saya</a></li>
+                {% if current_user.role == 'admin' %}
+                <li><a class="dropdown-item small py-2" href="{{ url_for('dashboard.index') }}"><i class="bi bi-speedometer2 me-2"></i>Dashboard Admin</a></li>
+                {% endif %}
+                <li><hr class="dropdown-divider my-1"></li>
+                <li><a class="dropdown-item small py-2 text-danger" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right me-2"></i>Keluar</a></li>
+              </ul>
+            </div>
+
+          {% else %}
+            <a href="{{ url_for('auth.login') }}" class="btn-outline-custom py-2 px-4 text-decoration-none" style="font-size: 0.85rem; padding: 8px 18px !important;">
+              Masuk
+            </a>
+            <a href="{{ url_for('auth.register') }}" class="btn-primary-custom py-2 px-4 text-decoration-none" style="font-size: 0.85rem; padding: 8px 18px !important;">
+              Daftar
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ═══════════════════════════════════════
+       FLASH MESSAGES
+  ════════════════════════════════════════ -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="container mt-3">
+        {% for category, message in messages %}
+          <div class="alert-flash {{ 'success' if category == 'success' else 'error' if category == 'danger' else 'info' }} mb-2">
+            <i class="bi {{ 'bi-check-circle-fill' if category == 'success' else 'bi-exclamation-circle-fill' if category == 'danger' else 'bi-info-circle-fill' }}"></i>
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- ═══════════════════════════════════════
+       MAIN CONTENT
+  ════════════════════════════════════════ -->
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- ═══════════════════════════════════════
+       FOOTER
+  ════════════════════════════════════════ -->
+  <footer class="footer-main">
+    <div class="container">
+      <div class="row g-5">
+        <div class="col-lg-4">
+          <div class="footer-brand mb-3">Nex<span>Shop</span></div>
+          <p style="font-size: 0.88rem; line-height: 1.7; max-width: 280px;">
+            Platform belanja online modern. Temukan ribuan produk pilihan dengan pengalaman belanja terbaik.
+          </p>
+          <div class="d-flex gap-2 mt-4">
+            {% for icon in ['instagram', 'twitter-x', 'tiktok', 'facebook'] %}
+            <a href="#" style="width:36px; height:36px; background:rgba(255,255,255,0.08); border-radius:8px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.6); transition:0.2s;">
+              <i class="bi bi-{{ icon }}"></i>
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="col-6 col-lg-2">
+          <h6>Belanja</h6>
+          <a href="#">Semua Produk</a>
+          <a href="#">Kategori</a>
+          <a href="#">Penawaran</a>
+          <a href="#">Produk Baru</a>
+        </div>
+        <div class="col-6 col-lg-2">
+          <h6>Akun</h6>
+          <a href="{{ url_for('auth.login') }}">Masuk</a>
+          <a href="{{ url_for('auth.register') }}">Daftar</a>
+          <a href="{{ url_for('order.order_history') }}">Pesanan</a>
+          <a href="{{ url_for('cart.index') }}">Keranjang</a>
+        </div>
+        <div class="col-6 col-lg-2">
+          <h6>Bantuan</h6>
+          <a href="#">FAQ</a>
+          <a href="#">Kebijakan Privasi</a>
+          <a href="#">Syarat & Ketentuan</a>
+          <a href="#">Kontak</a>
+        </div>
+      </div>
+      <hr class="footer-divider">
+      <div class="d-flex flex-column flex-md-row justify-content-between align-items-center gap-2">
+        <p class="footer-copy mb-0">© 2025 NexShop. </p>
+        <div class="d-flex gap-3">
+          <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons@v11/icons/visa.svg" alt="Visa" style="height:18px; opacity:0.3; filter:invert(1);">
+          <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons@v11/icons/mastercard.svg" alt="Mastercard" style="height:18px; opacity:0.3; filter:invert(1);">
+          <img src="https://cdn.jsdelivr.net/gh/simple-icons/simple-icons@v11/icons/googlepay.svg" alt="GoPay" style="height:18px; opacity:0.3; filter:invert(1);">
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // Auto-dismiss flash messages
+    document.querySelectorAll('.alert-flash').forEach(el => {
+      setTimeout(() => {
+        el.style.transition = 'opacity 0.4s';
+        el.style.opacity = '0';
+        setTimeout(() => el.remove(), 400);
+      }, 4000);
+    });
+  </script>
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

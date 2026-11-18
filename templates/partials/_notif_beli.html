@@ -1,0 +1,497 @@
+
+
+{% if current_user.is_authenticated and current_user.role == 'user' %}
+<div class="notif-bell-wrap" id="notifWrap">
+
+  <button class="notif-trigger" id="notifTrigger"
+          type="button" aria-label="Notifikasi" title="Notifikasi">
+    <i class="bi bi-bell-fill" aria-hidden="true"></i>
+    <span class="notif-badge" id="notifBadge"></span>
+  </button>
+
+  <!-- Dropdown: awalnya hidden via CSS class, bukan style="" -->
+  <div class="notif-dropdown notif-dropdown--hidden" id="notifDropdown" role="dialog" aria-label="Notifikasi">
+
+    <div class="nd-header">
+      <span class="nd-title"><i class="bi bi-bell-fill me-2" aria-hidden="true"></i>Notifikasi</span>
+      <button class="nd-mark-all" id="btnMarkAll" type="button" title="Tandai semua terbaca">
+        <i class="bi bi-check2-all"></i> Semua terbaca
+      </button>
+    </div>
+
+    <div class="nd-list" id="notifList" role="list">
+      <!-- Diisi oleh JS -->
+    </div>
+
+    <div class="nd-footer">
+      <a href="{{ url_for('order.order_history') }}" class="nd-see-all">
+        Lihat semua pesanan <i class="bi bi-arrow-right"></i>
+      </a>
+    </div>
+
+  </div>
+</div>
+
+<style>
+/* ══════════════════════════════════════════════════════════
+   NOTIFICATION BELL
+══════════════════════════════════════════════════════════ */
+
+/* ── Wrapper ── */
+.notif-bell-wrap { position: relative; display: inline-block; }
+
+/* ── Trigger ── */
+.notif-trigger {
+  width: 38px; height: 38px;
+  background: none; border: 1.5px solid rgba(0, 0, 0, 0.18);
+  border-radius: 10px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1rem; color: rgba(0, 0, 0, 0.75);
+  transition: all .18s; position: relative;
+}
+.notif-trigger:hover  { background: rgba(0, 0, 0, 0.91); color: #ffffff; }
+.notif-trigger:focus  { outline: 2px solid rgba(0, 0, 0, 0.5); outline-offset: 2px; }
+.notif-trigger.has-unread { border-color: #000000; color: #000000; }
+
+/* ── Badge ── */
+.notif-badge {
+  position: absolute; top: -6px; right: -6px;
+  min-width: 18px; height: 18px; padding: 0 4px;
+  background: #ef4444; color: rgb(216, 222, 32);
+  border-radius: 9px; font-size: .6rem; font-weight: 800;
+  display: none; align-items: center; justify-content: center;
+  border: 2px solid #e90f0f; line-height: 1; pointer-events: none;
+  animation: badgePulse 2s infinite;
+}
+.notif-badge.visible { display: flex; }
+@keyframes badgePulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(255, 8, 8, 0.4); }
+  50%     { box-shadow: 0 0 0 5px rgba(239,68,68,0); }
+}
+
+/* ── Dropdown ── */
+.notif-dropdown {
+  position: absolute; top: calc(100% + 10px); right: 0;
+  width: 340px; background: #e8e8e8;
+  border-radius: 16px; border: 1px solid #0050ef;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.76);
+  z-index: 9999; overflow: hidden;
+}
+/* RC-1: pakai class, bukan style="" */
+.notif-dropdown--hidden { display: none; }
+.notif-dropdown--visible {
+  display: block;
+  animation: ndSlide .15s ease;
+}
+@keyframes ndSlide {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Header ── */
+.nd-header {
+  padding: 14px 18px; border-bottom: 1px solid #F3F4F6;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.nd-title { font-weight: 700; font-size: .875rem; color: #111827; display: flex; align-items: center; }
+.nd-mark-all {
+  background: none; border: none; cursor: pointer; padding: 0;
+  font-size: .72rem; font-weight: 600; color: #2563EB;
+  display: flex; align-items: center; gap: 4px; transition: color .15s;
+}
+.nd-mark-all:hover    { color: #1D4ED8; }
+.nd-mark-all:disabled { color: #9CA3AF; cursor: not-allowed; }
+
+/* ── List ── */
+.nd-list { max-height: 320px; overflow-y: auto; }
+.nd-list::-webkit-scrollbar { width: 3px; }
+.nd-list::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 3px; }
+
+/* ── States ── */
+.nd-loading, .nd-empty {
+  padding: 28px 18px; text-align: center;
+  font-size: .82rem; color: #9CA3AF;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.nd-loading { flex-direction: row; justify-content: center; }
+.nd-empty i { font-size: 2.5rem; color: #D1D5DB; }
+.nd-empty p { margin: 0; }
+.nd-error { color: #DC2626; }
+
+/* ── Item ── */
+.nd-item {
+  display: flex; align-items: flex-start; gap: 11px;
+  padding: 12px 18px 12px 15px;
+  border-bottom: 1px solid #F9FAFB;
+  cursor: pointer; transition: background .12s;
+  border-left: 3px solid transparent;
+}
+.nd-item:last-child { border-bottom: none; }
+.nd-item:hover { background: #F9FAFB; }
+.nd-item:focus { outline: none; background: #F0F4FF; }
+
+/* Unread */
+.nd-item.unread {
+  background: #EFF6FF; border-left-color: #3B82F6;
+}
+.nd-item.unread:hover { background: #DBEAFE; }
+.nd-item.unread .nd-notif-title { font-weight: 800; color: #1E40AF; }
+.nd-item.unread .nd-notif-msg   { color: #374151; }
+
+/* Read */
+.nd-item.read { background: #fff; }
+.nd-item.read .nd-notif-title { font-weight: 600; color: #374151; }
+.nd-item.read .nd-notif-msg   { color: #9CA3AF; }
+
+/* ── Icon chip ── */
+.nd-icon {
+  width: 34px; height: 34px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .9rem; flex-shrink: 0;
+}
+.nd-icon.processing { background: #EDE9FE; color: #6D28D9; }
+.nd-icon.completed  { background: #DCFCE7; color: #15803D; }
+.nd-icon.rejected   { background: #FEE2E2; color: #DC2626; }
+.nd-icon.default    { background: #F3F4F6; color: #6B7280; }
+
+/* ── Content ── */
+.nd-content { flex: 1; min-width: 0; }
+.nd-notif-title {
+  font-size: .82rem; margin-bottom: 2px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.nd-notif-msg {
+  font-size: .76rem; line-height: 1.45;
+  display: -webkit-box; -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical; overflow: hidden;
+}
+.nd-notif-time {
+  font-size: .68rem; color: #9CA3AF; margin-top: 4px;
+  display: flex; align-items: center; gap: 4px;
+}
+
+/* Dot indicator */
+.nd-dot {
+  width: 8px; height: 8px; background: #3B82F6;
+  border-radius: 50%; flex-shrink: 0; margin-top: 5px;
+}
+
+/* ── Footer ── */
+.nd-footer { padding: 11px 18px; border-top: 1px solid #F3F4F6; background: #FAFAFA; }
+.nd-see-all {
+  font-size: .78rem; font-weight: 700; color: #2563EB;
+  text-decoration: none; display: flex; align-items: center; gap: 5px;
+  transition: color .15s;
+}
+.nd-see-all:hover { color: #1D4ED8; }
+
+/* ── Mobile ── */
+@media (max-width: 400px) {
+  .notif-dropdown { width: calc(100vw - 24px); right: -50px; }
+}
+</style>
+
+<script>
+/* ════════════════════════════════════════════════════════════
+   NOTIFICATION BELL — FINAL
+
+   Semua inisialisasi di dalam DOMContentLoaded.
+   Guard window.__notifInit__ mencegah double-init (RC-4).
+════════════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', function () {
+
+  /* ── RC-4: guard double-init ── */
+  if (window.__notifInit__) return;
+  window.__notifInit__ = true;
+
+  /* ── DOM refs ── */
+  const trigger  = document.getElementById('notifTrigger');
+  const badge    = document.getElementById('notifBadge');
+  const dropdown = document.getElementById('notifDropdown');
+  const list     = document.getElementById('notifList');
+  const btnMark  = document.getElementById('btnMarkAll');
+
+  /* Guard: elemen tidak ada (user belum login / bukan role user) */
+  if (!trigger || !dropdown || !list) return;
+
+  /* ── RC-1: flag boolean sebagai sumber kebenaran state ── */
+  let isOpen      = false;
+  let isLoading   = false;
+
+  /* ── RC-2: simpan link di JS Map, BUKAN di data-attribute HTML ──
+     Ini mencegah escaping URL (&amp; dll) yang merusak href.       */
+  const linkMap = new Map();   // notifId (number) → url (string)
+
+  /* ════════════════════════════════════════════════════
+     setBadge(n) — satu-satunya yang boleh update badge
+  ════════════════════════════════════════════════════ */
+  function setBadge(n) {
+    n = parseInt(n, 10) || 0;
+    if (n > 0) {
+      badge.textContent = n > 99 ? '99+' : String(n);
+      badge.classList.add('visible');
+      trigger.classList.add('has-unread');
+    } else {
+      badge.textContent = '';
+      badge.classList.remove('visible');
+      trigger.classList.remove('has-unread');
+    }
+    if (btnMark) btnMark.disabled = (n === 0);
+  }
+
+  /* ════════════════════════════════════════════════════
+     openDropdown / closeDropdown
+  ════════════════════════════════════════════════════ */
+  function openDropdown() {
+    dropdown.classList.remove('notif-dropdown--hidden');
+    dropdown.classList.add('notif-dropdown--visible');
+    isOpen = true;
+  }
+  function closeDropdown() {
+    dropdown.classList.remove('notif-dropdown--visible');
+    dropdown.classList.add('notif-dropdown--hidden');
+    isOpen = false;
+  }
+
+  /* ════════════════════════════════════════════════════
+     iconMeta — map judul ke icon
+  ════════════════════════════════════════════════════ */
+  function iconMeta(title) {
+    if (/selesai|completed/i.test(title))
+      return { cls:'completed', html:'<i class="bi bi-bag-check-fill"></i>' };
+    if (/ditolak|rejected/i.test(title))
+      return { cls:'rejected',  html:'<i class="bi bi-x-circle-fill"></i>' };
+    if (/diverifikasi|processing/i.test(title))
+      return { cls:'processing',html:'<i class="bi bi-shield-check-fill"></i>' };
+    return { cls:'default', html:'<i class="bi bi-bell-fill"></i>' };
+  }
+
+  /* ── Safe text (untuk title/message — bukan URL) ── */
+  function esc(str) {
+    const d = document.createElement('div');
+    d.textContent = str || '';
+    return d.innerHTML;
+  }
+
+  /* ════════════════════════════════════════════════════
+     renderItems(notifications) — render tanpa fetch
+     Dipakai oleh markAllRead agar tidak butuh fetch ke-2.
+  ════════════════════════════════════════════════════ */
+  function renderItems(notifications) {
+    if (!notifications || notifications.length === 0) {
+      list.innerHTML = `
+        <div class="nd-empty">
+          <i class="bi bi-bell-slash" aria-hidden="true"></i>
+          <p>Belum ada notifikasi</p>
+        </div>`;
+      return;
+    }
+
+    linkMap.clear();
+
+    list.innerHTML = notifications.map(function(n) {
+      const meta = iconMeta(n.title);
+      const cls  = n.is_read ? 'read' : 'unread';
+
+      /* RC-2: simpan link asli di Map, JANGAN di attribute */
+      linkMap.set(n.id, n.link || '/orders/history');
+
+      return `
+        <div class="nd-item ${cls}"
+             data-notif-id="${n.id}"
+             role="listitem button"
+             tabindex="0"
+             aria-label="${esc(n.title)}">
+          <div class="nd-icon ${meta.cls}" aria-hidden="true">${meta.html}</div>
+          <div class="nd-content">
+            <div class="nd-notif-title">${esc(n.title)}</div>
+            <div class="nd-notif-msg">${esc(n.message)}</div>
+            <div class="nd-notif-time">
+              <i class="bi bi-clock" style="font-size:.6rem;" aria-hidden="true"></i>
+              ${esc(n.created_at)}
+            </div>
+          </div>
+          ${!n.is_read ? '<div class="nd-dot" aria-hidden="true"></div>' : ''}
+        </div>`;
+    }).join('');
+
+    /* Pasang event click satu kali per item */
+    list.querySelectorAll('.nd-item').forEach(function(el) {
+      el.addEventListener('click', function() {
+        const id = parseInt(this.dataset.notifId, 10);
+        doMarkRead(id, this);
+      });
+      /* Accessibility: keyboard Enter/Space */
+      el.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          const id = parseInt(this.dataset.notifId, 10);
+          doMarkRead(id, this);
+        }
+      });
+    });
+  }
+
+  /* ════════════════════════════════════════════════════
+     loadNotifications() — fetch dari server
+     Hanya dipanggil saat dropdown dibuka.
+     Tidak dipanggil dari tempat lain.
+  ════════════════════════════════════════════════════ */
+  function loadNotifications() {
+    if (isLoading) return;   /* cegah request bersamaan */
+    isLoading = true;
+
+    list.innerHTML = `
+      <div class="nd-loading">
+        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+        Memuat…
+      </div>`;
+
+    fetch('/notifications/recent', {
+      credentials: 'same-origin',
+      headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+    })
+      .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
+      .then(function(data) {
+        isLoading = false;
+        setBadge(data.unread);
+        renderItems(data.notifications);
+      })
+      .catch(function(err) {
+        isLoading = false;
+        console.warn('[notif] loadNotifications error:', err);
+        list.innerHTML = `
+          <div class="nd-loading nd-error">
+            <i class="bi bi-wifi-off me-2"></i>
+            Gagal memuat.
+            <button onclick="loadNotifications()" style="margin-left:6px; background:none; border:none; color:#2563EB; cursor:pointer; font-size:.78rem; font-weight:700;">Coba lagi</button>
+          </div>`;
+      });
+  }
+
+  /* ════════════════════════════════════════════════════
+     doMarkRead(id, itemEl)
+     RC-2 FIX: ambil link dari linkMap, bukan dari
+       attribute HTML yang ter-escape.
+     RC-3 FIX: tidak memanggil loadNotifications() lagi.
+       Cukup update visual item secara lokal.
+  ════════════════════════════════════════════════════ */
+  function doMarkRead(id, itemEl) {
+    /* RC-1 / Optimistic UI: ubah visual segera */
+    if (itemEl) {
+      itemEl.classList.remove('unread');
+      itemEl.classList.add('read');
+      const dot = itemEl.querySelector('.nd-dot');
+      if (dot) dot.remove();
+    }
+
+    /* RC-2: link asli dari Map */
+    const link = linkMap.get(id) || '/orders/history';
+
+    fetch('/notifications/' + id + '/read', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        /* Update badge dari server (sumber kebenaran) */
+        if (typeof data.unread === 'number') setBadge(data.unread);
+        /* Redirect setelah badge di-update */
+        window.location.href = link;
+      })
+      .catch(function(err) {
+        console.warn('[notif] mark_read error:', err);
+        /* Tetap redirect walau fetch gagal */
+        window.location.href = link;
+      });
+  }
+
+  /* ════════════════════════════════════════════════════
+     Klik trigger — RC-1 FIX: pakai flag isOpen
+  ════════════════════════════════════════════════════ */
+  trigger.addEventListener('click', function(e) {
+    e.stopPropagation();
+    if (isOpen) {
+      closeDropdown();
+    } else {
+      openDropdown();
+      loadNotifications();
+    }
+  });
+
+  /* ════════════════════════════════════════════════════
+     Klik di luar — tutup dropdown
+  ════════════════════════════════════════════════════ */
+  document.addEventListener('click', function(e) {
+    if (isOpen) {
+      const wrap = document.getElementById('notifWrap');
+      if (wrap && !wrap.contains(e.target)) {
+        closeDropdown();
+      }
+    }
+  });
+
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && isOpen) closeDropdown();
+  });
+
+  if (btnMark) {
+    btnMark.addEventListener('click', function(e) {
+      e.stopPropagation();
+      if (btnMark.disabled) return;
+      btnMark.disabled = true;
+
+      fetch('/notifications/read-all', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+      })
+        .then(function(r) { return r.json(); })
+        .then(function() {
+          setBadge(0);
+          /* RC-3: update visual lokal tanpa fetch ke-2 */
+          list.querySelectorAll('.nd-item.unread').forEach(function(el) {
+            el.classList.remove('unread');
+            el.classList.add('read');
+            const dot = el.querySelector('.nd-dot');
+            if (dot) dot.remove();
+          });
+        })
+        .catch(function(err) {
+          console.warn('[notif] mark_all_read error:', err);
+          btnMark.disabled = false;
+        });
+    });
+  }
+
+  /* ════════════════════════════════════════════════════
+     pollBadge() — sinkronisasi pasif setiap 60 detik.
+     RC-4: guard via __notifPollStarted__ agar interval
+     tidak terpasang lebih dari sekali.
+  ════════════════════════════════════════════════════ */
+  function pollBadge() {
+    fetch('/notifications/unread-count', {
+      credentials: 'same-origin',
+      headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+    })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (typeof data.count === 'number') setBadge(data.count);
+      })
+      .catch(function() { /* silent — jangan log spam */ });
+  }
+
+  if (!window.__notifPollStarted__) {
+    window.__notifPollStarted__ = true;
+    pollBadge();                        /* load badge saat init */
+    setInterval(pollBadge, 60000);      /* poll tiap 60 detik */
+  }
+
+}); /* end DOMContentLoaded */
+</script>
+{% endif %}

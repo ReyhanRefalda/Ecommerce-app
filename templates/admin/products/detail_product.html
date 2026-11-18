@@ -1,0 +1,255 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block title %}Detail Produk — NexShop Admin{% endblock %}
+
+{% block page_title %}Detail Produk{% endblock %}
+{% block page_subtitle %}
+Informasi lengkap produk "{{ product.nama_produk }}"
+{% endblock %}
+
+{% block content %}
+
+<div class="container-fluid">
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb bg-transparent p-0">
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('dashboard.index') }}">Dashboard</a>
+            </li>
+
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('admin_product.products') }}">Produk</a>
+            </li>
+
+            <li class="breadcrumb-item active">
+                Detail Produk
+            </li>
+        </ol>
+    </nav>
+
+    <div class="card shadow-sm border-0">
+
+        <div class="card-body">
+
+            <div class="row g-4">
+
+                <!-- =========================
+                     FOTO
+                ========================== -->
+
+                <div class="col-lg-5">
+
+                    {% if product.gambar %}
+
+                    <img
+                        src="{{ url_for('static', filename='uploads/' + product.gambar) }}"
+                        class="img-fluid rounded border w-100"
+                        style="max-height:500px; object-fit:cover;"
+                    >
+
+                    {% else %}
+
+                    <div
+                        class="border rounded d-flex flex-column justify-content-center align-items-center text-muted"
+                        style="height:420px;"
+                    >
+
+                        <i class="bi bi-image fs-1 mb-2"></i>
+
+                        <span>Belum ada gambar</span>
+
+                    </div>
+
+                    {% endif %}
+
+                </div>
+
+                <!-- =========================
+                     INFORMASI
+                ========================== -->
+
+                <div class="col-lg-7">
+
+                    <h2 class="fw-bold mb-3">
+                        {{ product.nama_produk }}
+                    </h2>
+
+                    {% if product.stok == 0 %}
+                        <span class="badge bg-danger mb-4">
+                            Out of Stock
+                        </span>
+
+                    {% elif product.stok <= 5 %}
+                        <span class="badge bg-warning text-dark mb-4">
+                            Low Stock
+                        </span>
+
+                    {% else %}
+                        <span class="badge bg-success mb-4">
+                            Available
+                        </span>
+                    {% endif %}
+
+                    <div class="table-responsive">
+
+                        <table class="table table-borderless align-middle">
+
+                            <tbody>
+
+                                <tr>
+                                    <th width="180">ID Produk</th>
+                                    <td>#{{ product.id }}</td>
+                                </tr>
+
+                                <tr>
+                                    <th>Kategori</th>
+
+                                    <td>
+                                        {% if product.category %}
+                                            {{ product.category.nama_kategori }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <th>Harga</th>
+
+                                    <td>
+
+                                        <span class="fw-bold text-success">
+
+                                            Rp {{ "{:,.0f}".format(product.harga).replace(",", ".") }}
+
+                                        </span>
+
+                                    </td>
+                                </tr>
+
+                                <tr>
+                                    <th>Stok</th>
+
+                                    <td>
+
+                                        {{ product.stok }} Unit
+
+                                    </td>
+                                </tr>
+
+                                <tr>
+
+                                    <th>Status</th>
+
+                                    <td>
+
+                                        {% if product.stok == 0 %}
+
+                                            <span class="badge bg-danger">
+                                                Out of Stock
+                                            </span>
+
+                                        {% elif product.stok <= 5 %}
+
+                                            <span class="badge bg-warning text-dark">
+                                                Low Stock
+                                            </span>
+
+                                        {% else %}
+
+                                            <span class="badge bg-success">
+                                                Available
+                                            </span>
+
+                                        {% endif %}
+
+                                    </td>
+
+                                </tr>
+
+                                {% if product.created_at %}
+
+                                <tr>
+
+                                    <th>Tanggal</th>
+
+                                    <td>
+
+                                        {{ product.created_at.strftime('%d %B %Y') }}
+
+                                    </td>
+
+                                </tr>
+
+                                {% endif %}
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                    <hr>
+
+                    <h5 class="fw-semibold mb-3">
+
+                        Deskripsi Produk
+
+                    </h5>
+
+                    <div class="border rounded p-3 bg-light">
+
+                        {% if product.deskripsi %}
+
+                            {{ product.deskripsi }}
+
+                        {% else %}
+
+                            <span class="text-muted">
+
+                                Belum ada deskripsi produk.
+
+                            </span>
+
+                        {% endif %}
+
+                    </div>
+
+                    <div class="mt-4 d-flex flex-wrap gap-2">
+
+                        <a
+                            href="{{ url_for('admin_product.products') }}"
+                            class="btn btn-secondary"
+                        >
+
+                            <i class="bi bi-arrow-left"></i>
+
+                            Kembali
+
+                        </a>
+
+                        <a
+                            href="{{ url_for('admin_product.edit_product', id=product.id) }}"
+                            class="btn btn-primary"
+                        >
+
+                            <i class="bi bi-pencil-square"></i>
+
+                            Edit Produk
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

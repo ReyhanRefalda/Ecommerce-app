@@ -1,0 +1,349 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block title %}Edit Kategori — {{ category.nama_kategori }} — NexShop Admin{% endblock %}
+{% block page_title %}Edit Kategori{% endblock %}
+{% block page_subtitle %}Perbarui nama kategori "{{ category.nama_kategori }}"{% endblock %}
+
+{% block breadcrumb %}
+  <li class="breadcrumb-item">
+    <a href="{{ url_for('dashboard.index') }}" class="text-muted text-decoration-none">Admin</a>
+  </li>
+  <li class="breadcrumb-item">
+    <a href="{{ url_for('category_admin.index') }}" class="text-muted text-decoration-none">Kategori</a>
+  </li>
+  <li class="breadcrumb-item active text-muted">Edit</li>
+{% endblock %}
+
+{% block page_actions %}
+  <a href="{{ url_for('category_admin.index') }}"
+     style="border:1.5px solid #E8E8E2; border-radius:9px; padding:9px 16px; font-family:var(--font-display); font-weight:600; font-size:0.85rem; color:#444; text-decoration:none; display:inline-flex; align-items:center; gap:7px; background:#fff;">
+    <i class="bi bi-arrow-left"></i> Kembali
+  </a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .form-card { background:#fff; border:1px solid #E8E8E2; border-radius:16px; overflow:hidden; }
+  .form-card-header { padding:18px 24px; border-bottom:1px solid #F0F0EA; display:flex; align-items:center; gap:10px; }
+  .form-card-header .step-no { width:28px; height:28px; background:#0A0A0A; color:#E8FF47; border-radius:50%; font-family:var(--font-display); font-weight:800; font-size:0.82rem; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .form-card-header h6 { font-family:var(--font-display); font-weight:700; font-size:0.95rem; margin:0; color:#0A0A0A; }
+
+  .field-label { font-family:var(--font-display); font-weight:700; font-size:0.82rem; color:#0A0A0A; display:flex; align-items:center; gap:5px; margin-bottom:8px; }
+  .field-label .req { color:#DC2626; }
+
+  .form-input { width:100%; border:1.5px solid #E8E8E2; border-radius:10px; padding:13px 16px; font-size:0.9rem; font-family:var(--font-body); background:#FAFAF8; color:#0A0A0A; transition:border-color 0.2s, box-shadow 0.2s, background 0.2s; outline:none; }
+  .form-input:focus { border-color:#0A0A0A; box-shadow:0 0 0 3px rgba(10,10,10,0.07); background:#fff; }
+  .form-input.is-invalid { border-color:#DC2626; box-shadow:0 0 0 3px rgba(220,38,38,0.07); }
+
+  .field-hint { font-size:0.76rem; color:#AAA; margin-top:6px; }
+  .invalid-msg { font-size:0.78rem; color:#DC2626; margin-top:6px; display:none; align-items:center; gap:4px; }
+  .char-count { font-size:0.72rem; color:#AAA; text-align:right; margin-top:5px; }
+
+  /* Old value badge */
+  .old-val-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: #FEF9C3;
+    border: 1.5px solid #FDE68A;
+    border-radius: 9px;
+    padding: 8px 14px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: #854D0E;
+    margin-bottom: 14px;
+  }
+
+  /* Preview */
+  .preview-tag { display:inline-flex; align-items:center; gap:8px; background:#F5F5F0; border:1.5px solid #E8E8E2; border-radius:9px; padding:9px 16px; font-family:var(--font-display); font-weight:700; font-size:0.875rem; color:#333; margin-top:10px; transition:all 0.2s; }
+  .preview-tag i { font-size:0.9rem; color:#888; }
+
+  /* Changed indicator */
+  .changed-indicator {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: #D97706;
+    background: #FEF3C7;
+    padding: 5px 10px;
+    border-radius: 7px;
+  }
+  .changed-dot {
+    width: 7px; height: 7px;
+    background: #D97706;
+    border-radius: 50%;
+    animation: blink 1.4s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+  /* Buttons */
+  .btn-save { background:#0A0A0A; color:#E8FF47; border:none; border-radius:11px; padding:13px 28px; font-family:var(--font-display); font-weight:700; font-size:0.9rem; cursor:pointer; display:inline-flex; align-items:center; gap:8px; transition:all 0.18s; }
+  .btn-save:hover { background:#222; transform:translateY(-1px); box-shadow:0 8px 24px rgba(10,10,10,0.14); }
+  .btn-save:disabled { opacity:0.6; cursor:not-allowed; transform:none; }
+
+  .btn-back-link { font-family:var(--font-display); font-weight:600; font-size:0.875rem; color:#666; text-decoration:none; display:inline-flex; align-items:center; gap:6px; transition:color 0.15s; }
+  .btn-back-link:hover { color:#0A0A0A; }
+
+  .btn-undo { background:none; border:1.5px solid #E8E8E2; border-radius:9px; padding:10px 18px; font-family:var(--font-display); font-weight:600; font-size:0.875rem; color:#555; cursor:pointer; display:inline-flex; align-items:center; gap:6px; transition:all 0.15s; }
+  .btn-undo:hover { background:#F5F5F0; color:#0A0A0A; }
+
+  /* Flash */
+  .flash-msg { border:none; border-radius:10px; padding:11px 16px; font-size:0.875rem; display:flex; align-items:center; gap:9px; margin-bottom:16px; font-weight:500; }
+  .flash-success { background:#DCFCE7; color:#166534; }
+  .flash-danger  { background:#FEE2E2; color:#991B1B; }
+
+  /* Metadata card */
+  .meta-card { background:#fff; border:1px solid #E8E8E2; border-radius:14px; padding:18px 20px; }
+  .meta-row { display:flex; align-items:flex-start; padding:9px 0; border-bottom:1px solid #F5F5F0; gap:12px; }
+  .meta-row:last-child { border-bottom:none; padding-bottom:0; }
+  .meta-key { font-family:var(--font-display); font-weight:700; font-size:0.7rem; text-transform:uppercase; letter-spacing:0.07em; color:#AAA; min-width:100px; flex-shrink:0; padding-top:2px; }
+  .meta-val { font-size:0.875rem; color:#333; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Flash -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for cat, message in messages %}
+      <div class="flash-msg {{ 'flash-success' if cat == 'success' else 'flash-danger' }}">
+        <i class="bi {{ 'bi-check-circle-fill' if cat == 'success' else 'bi-exclamation-circle-fill' }}"></i>
+        {{ message | safe }}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<div class="row g-4">
+
+  <!-- ════ Form ════ -->
+  <div class="col-lg-7">
+    <div class="form-card">
+      <div class="form-card-header">
+        <span class="step-no"><i class="bi bi-pencil" style="font-size:0.75rem;"></i></span>
+        <h6>Edit Informasi Kategori</h6>
+        <div class="changed-indicator ms-auto" id="changedIndicator">
+          <span class="changed-dot"></span> Ada perubahan
+        </div>
+      </div>
+
+      <div class="p-4">
+
+        <!-- Old value indicator -->
+        <div class="old-val-badge">
+          <i class="bi bi-clock-history"></i>
+          <span>Nilai saat ini: <strong>{{ category.nama_kategori }}</strong></span>
+        </div>
+
+        <form
+          action="{{ url_for('category_admin.edit', id=category.id) }}"
+          method="POST"
+          id="editCatForm"
+          novalidate
+        >
+          <!-- Nama Kategori -->
+          <div class="mb-4">
+            <label class="field-label" for="nama_kategori">
+              Nama Kategori Baru <span class="req">*</span>
+            </label>
+            <input
+              type="text"
+              id="nama_kategori"
+              name="nama_kategori"
+              class="form-input"
+              placeholder="Masukkan nama kategori baru…"
+              maxlength="100"
+              required
+              autocomplete="off"
+              value="{{ nama }}"
+              oninput="handleInput(this)"
+            />
+            <div class="d-flex justify-content-between align-items-start mt-1 flex-wrap gap-1">
+              <div class="invalid-msg" id="namaError">
+                <i class="bi bi-exclamation-circle-fill"></i> Nama kategori tidak boleh kosong
+              </div>
+              <div class="char-count ms-auto" id="charCount">{{ nama|length }} / 100</div>
+            </div>
+            <div class="field-hint">Ubah nama kategori sesuai kebutuhan. Nama harus unik.</div>
+
+            <!-- Live preview -->
+            <div id="previewTag" class="preview-tag" style="{{ '' if nama else 'display:none;' }}">
+              <i class="bi bi-tag-fill"></i>
+              <span id="previewTagText">{{ nama }}</span>
+            </div>
+          </div>
+
+          <!-- Action buttons -->
+          <div class="d-flex align-items-center justify-content-between mt-3 pt-3"
+               style="border-top:1px solid #F5F5F0;" id="formActions">
+            <div class="d-flex align-items-center gap-2">
+              <a href="{{ url_for('category_admin.index') }}" class="btn-back-link">
+                <i class="bi bi-x"></i> Batal
+              </a>
+            </div>
+            <div class="d-flex gap-2">
+              <button type="button" class="btn-undo" onclick="undoChanges()">
+                <i class="bi bi-arrow-counterclockwise"></i> Undo
+              </button>
+              <button type="submit" class="btn-save" id="btnSave">
+                <i class="bi bi-check2-circle"></i> Update Kategori
+              </button>
+            </div>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ Info sidebar ════ -->
+  <div class="col-lg-5">
+
+    <!-- Metadata -->
+    <div class="meta-card mb-3">
+      <div style="font-family:var(--font-display); font-weight:700; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.07em; color:#AAA; margin-bottom:14px;">
+        <i class="bi bi-info-circle me-1"></i> Metadata
+      </div>
+      <div class="meta-row">
+        <span class="meta-key">ID</span>
+        <span class="meta-val">
+          <code style="background:#F5F5F0; border:1px solid #E8E8E2; border-radius:5px; padding:2px 8px; font-size:0.8rem;">#{{ category.id }}</code>
+        </span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-key">Nama Lama</span>
+        <span class="meta-val" style="font-weight:600;">{{ category.nama_kategori }}</span>
+      </div>
+      <div class="meta-row">
+        <span class="meta-key">Jml. Produk</span>
+        <span class="meta-val">
+          {% set count = category.products | length %}
+          {% if count > 0 %}
+            <span style="background:#DCFCE7; color:#166534; padding:3px 9px; border-radius:6px; font-family:var(--font-display); font-weight:700; font-size:0.78rem;">
+              {{ count }} produk
+            </span>
+          {% else %}
+            <span style="color:#AAA; font-size:0.82rem;">Belum ada produk</span>
+          {% endif %}
+        </span>
+      </div>
+    </div>
+
+    <!-- Warning if has products -->
+    {% if category.products | length > 0 %}
+    <div style="background:#FFF7ED; border:1.5px solid #FED7AA; border-radius:12px; padding:14px 16px; font-size:0.82rem; color:#92400E; display:flex; gap:10px; align-items:flex-start;">
+      <i class="bi bi-exclamation-triangle-fill" style="flex-shrink:0; font-size:1rem; margin-top:1px; color:#D97706;"></i>
+      <div>
+        <strong style="font-family:var(--font-display);">Perhatian</strong><br>
+        Mengubah nama kategori akan langsung berdampak pada tampilan
+        <strong>{{ category.products | length }} produk</strong> yang menggunakan kategori ini.
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick action: delete -->
+    <div style="background:#fff; border:1px solid #E8E8E2; border-radius:14px; padding:18px 20px; margin-top:16px;">
+      <div style="font-family:var(--font-display); font-weight:700; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.07em; color:#AAA; margin-bottom:12px;">
+        <i class="bi bi-gear me-1"></i> Tindakan Lain
+      </div>
+      {% if category.products | length == 0 %}
+        <form action="{{ url_for('category_admin.delete', id=category.id) }}" method="POST"
+              onsubmit="return confirm('Hapus kategori {{ category.nama_kategori }}? Tindakan ini tidak dapat dibatalkan.')">
+          <button type="submit"
+            style="width:100%; background:#FEE2E2; color:#DC2626; border:none; border-radius:9px; padding:10px; font-family:var(--font-display); font-weight:700; font-size:0.85rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:7px; transition:background 0.15s;"
+            onmouseover="this.style.background='#FECACA'"
+            onmouseout="this.style.background='#FEE2E2'">
+            <i class="bi bi-trash3"></i> Hapus Kategori Ini
+          </button>
+        </form>
+      {% else %}
+        <div style="font-size:0.8rem; color:#888; text-align:center; padding:8px 0;">
+          Kategori tidak bisa dihapus karena masih memiliki {{ category.products | length }} produk.
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const ORIGINAL_NAME = '{{ category.nama_kategori | replace("'", "\\'") }}';
+  let isChanged = false;
+
+  function handleInput(el) {
+    // Update char count
+    document.getElementById('charCount').textContent = `${el.value.length} / 100`;
+
+    // Update preview
+    const tag  = document.getElementById('previewTag');
+    const text = document.getElementById('previewTagText');
+    if (el.value.trim()) {
+      tag.style.display = 'inline-flex';
+      text.textContent  = el.value.trim();
+    } else {
+      tag.style.display = 'none';
+    }
+
+    // Mark changed
+    const indicator = document.getElementById('changedIndicator');
+    if (el.value !== ORIGINAL_NAME) {
+      isChanged = true;
+      indicator.style.display = 'inline-flex';
+    } else {
+      isChanged = false;
+      indicator.style.display = 'none';
+    }
+
+    // Clear error
+    el.classList.remove('is-invalid');
+    document.getElementById('namaError').style.display = 'none';
+  }
+
+  function undoChanges() {
+    const inp = document.getElementById('nama_kategori');
+    inp.value = ORIGINAL_NAME;
+    handleInput(inp);
+  }
+
+  // Validation on submit
+  document.getElementById('editCatForm').addEventListener('submit', function(e) {
+    const inp = document.getElementById('nama_kategori');
+    const err = document.getElementById('namaError');
+    err.style.display = 'none';
+    inp.classList.remove('is-invalid');
+
+    if (!inp.value.trim()) {
+      inp.classList.add('is-invalid');
+      err.style.display = 'flex';
+      e.preventDefault();
+      return;
+    }
+
+    const btn = document.getElementById('btnSave');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan…';
+    isChanged = false; // prevent beforeunload
+  });
+
+  // Guard unsaved changes
+  window.addEventListener('beforeunload', e => {
+    if (isChanged) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+
+  // Auto-dismiss flash
+  document.querySelectorAll('.flash-msg').forEach(el => {
+    setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 400); }, 5000);
+    el.style.transition = 'opacity 0.4s 5s';
+  });
+</script>
+{% endblock %}

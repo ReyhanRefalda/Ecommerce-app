@@ -1,0 +1,839 @@
+{% extends 'layouts/base.html' %}
+{% block title %}NexShop — Belanja Online Terpercaya{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ══════════════════════════════════════
+     DESIGN TOKENS
+  ══════════════════════════════════════ */
+  :root {
+    --lp-dark:      #0A0A0A;
+    --lp-accent:    #E8FF47;
+    --lp-accent2:   #C8E000;
+    --lp-surface:   #F5F5F0;
+    --lp-white:     #FFFFFF;
+    --lp-border:    #E5E7EB;
+    --lp-text:      #111827;
+    --lp-muted:     #6B7280;
+    --lp-radius:    16px;
+    --lp-font-d:    var(--font-display, 'Plus Jakarta Sans', sans-serif);
+    --lp-shadow:    0 4px 20px rgba(0,0,0,0.06);
+    --lp-shadow-lg: 0 16px 48px rgba(0,0,0,0.10);
+    --lp-trans:     0.22s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  /* ══════════════════════════════════════
+     HERO
+  ══════════════════════════════════════ */
+  .hero-section {
+    min-height: calc(100vh - var(--nav-height, 70px));
+    background: var(--lp-dark);
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    padding: 80px 0 60px;
+  }
+  /* Animated gradient orbs */
+  .hero-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    animation: orbFloat 8s ease-in-out infinite;
+  }
+  .hero-orb-1 { width:500px; height:500px; background:rgba(232,255,71,0.12); top:-15%; right:-10%; }
+  .hero-orb-2 { width:350px; height:350px; background:rgba(99,102,241,0.08); bottom:-10%; left:-5%; animation-delay:3s; }
+  .hero-orb-3 { width:200px; height:200px; background:rgba(232,255,71,0.07); top:40%; left:35%; animation-delay:5s; }
+  @keyframes orbFloat {
+    0%,100% { transform:translate(0,0) scale(1); }
+    33%      { transform:translate(15px,-20px) scale(1.03); }
+    66%      { transform:translate(-10px,10px) scale(0.97); }
+  }
+
+  /* Grid pattern overlay */
+  .hero-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+  }
+
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(232,255,71,0.1);
+    border: 1px solid rgba(232,255,71,0.2);
+    color: var(--lp-accent);
+    padding: 7px 16px;
+    border-radius: 100px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    width: fit-content;
+  }
+  .hero-badge::before {
+    content: '';
+    width: 7px; height: 7px;
+    background: var(--lp-accent);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1; transform:scale(1);} 50%{opacity:0.4; transform:scale(0.6);} }
+
+  .hero-title {
+    font-size: clamp(2.8rem, 6vw, 5.5rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.0;
+    color: #fff;
+    margin-bottom: 20px;
+  }
+  .hero-title .hl { color: var(--lp-accent); display: block; }
+
+  .hero-subtitle {
+    color: rgba(255,255,255,0.5);
+    font-size: 1.05rem;
+    line-height: 1.75;
+    max-width: 460px;
+    margin-bottom: 36px;
+  }
+
+  .hero-cta { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-bottom: 48px; }
+
+  .btn-hero-primary {
+    background: var(--lp-accent);
+    color: var(--lp-dark);
+    border: none;
+    border-radius: 12px;
+    padding: 14px 28px;
+    font-weight: 800;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 9px;
+    text-decoration: none;
+    transition: all var(--lp-trans);
+    letter-spacing: -0.01em;
+  }
+  .btn-hero-primary:hover { background: var(--lp-accent2); color: var(--lp-dark); transform: translateY(-2px); box-shadow: 0 12px 32px rgba(232,255,71,0.3); }
+
+  .btn-hero-outline {
+    background: transparent;
+    color: rgba(255,255,255,0.75);
+    border: 1.5px solid rgba(255,255,255,0.2);
+    border-radius: 12px;
+    padding: 13px 24px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px;
+    text-decoration: none;
+    transition: all var(--lp-trans);
+  }
+  .btn-hero-outline:hover { border-color: rgba(255,255,255,0.5); color: #fff; background: rgba(255,255,255,0.06); }
+
+  .hero-stats { display: flex; gap: 36px; flex-wrap: wrap; }
+  .hero-stat .stat-num { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.04em; color: #fff; line-height: 1; }
+  .hero-stat .stat-lbl { font-size: 0.73rem; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600; margin-top: 3px; }
+
+  /* Hero right side — product mockups */
+  .hero-right { position: relative; display: flex; justify-content: center; }
+  .hero-card-mock {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 20px;
+    backdrop-filter: blur(12px);
+    max-width: 300px;
+    width: 100%;
+  }
+  .hero-card-mock .mock-img {
+    width: 100%; aspect-ratio: 1/1;
+    background: linear-gradient(135deg, rgba(232,255,71,0.1), rgba(232,255,71,0.02));
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 4.5rem; margin-bottom: 16px;
+  }
+  .hero-card-mock .mock-name { font-weight: 700; color: #fff; font-size: 0.95rem; margin-bottom: 4px; }
+  .hero-card-mock .mock-price { font-size: 1.2rem; font-weight: 800; color: var(--lp-accent); letter-spacing: -0.03em; }
+  .hero-card-mock .mock-btn {
+    margin-top: 14px; width: 100%;
+    background: var(--lp-accent); color: var(--lp-dark);
+    border: none; border-radius: 10px; padding: 10px;
+    font-weight: 800; font-size: 0.85rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    transition: all var(--lp-trans);
+  }
+  .hero-card-mock .mock-btn:hover { background: var(--lp-accent2); }
+
+  /* Floating badges */
+  .hero-float-badge {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 10px 14px;
+    display: inline-flex; align-items: center; gap: 10px;
+    color: rgba(255,255,255,0.8);
+    font-size: 0.78rem; font-weight: 600;
+    position: absolute;
+  }
+  .hero-float-badge .fbi { width: 30px; height: 30px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; flex-shrink: 0; }
+  .hero-float-badge strong { display: block; color: #fff; font-size: 0.85rem; }
+
+  /* ══════════════════════════════════════
+     TICKER / MARQUEE
+  ══════════════════════════════════════ */
+  .ticker-wrap { background: var(--lp-dark); padding: 12px 0; border-top:1px solid rgba(255,255,255,0.05); border-bottom:1px solid rgba(255,255,255,0.05); overflow: hidden; }
+  .ticker-track { display: flex; gap: 48px; width: max-content; animation: ticker 20s linear infinite; }
+  .ticker-track:hover { animation-play-state: paused; }
+  .ticker-item { display: flex; align-items: center; gap: 10px; color: rgba(255,255,255,0.3); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; white-space: nowrap; }
+  .ticker-item::before { content:'✦'; color: var(--lp-accent); font-size:0.5rem; }
+  @keyframes ticker { from{transform:translateX(0);} to{transform:translateX(-50%);} }
+
+  /* ══════════════════════════════════════
+     FEATURES
+  ══════════════════════════════════════ */
+  .features-section { padding: 64px 0; background: var(--lp-white); }
+  .feature-card {
+    display: flex; align-items: flex-start; gap: 16px;
+    padding: 24px;
+    background: var(--lp-surface);
+    border-radius: var(--lp-radius);
+    border: 1px solid var(--lp-border);
+    transition: all var(--lp-trans);
+    height: 100%;
+  }
+  .feature-card:hover { transform: translateY(-3px); box-shadow: var(--lp-shadow); }
+  .feature-icon {
+    width: 52px; height: 52px;
+    border-radius: 13px;
+    background: var(--lp-dark);
+    color: var(--lp-accent);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; flex-shrink: 0;
+  }
+  .feature-title { font-weight: 800; font-size: 0.95rem; margin-bottom: 4px; }
+  .feature-desc { font-size: 0.82rem; color: var(--lp-muted); line-height: 1.6; margin: 0; }
+
+  /* ══════════════════════════════════════
+     SECTION COMMON
+  ══════════════════════════════════════ */
+  .section-eyebrow { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--lp-muted); margin-bottom: 8px; }
+  .section-title { font-size: clamp(1.8rem, 3vw, 2.4rem); font-weight: 800; letter-spacing: -0.03em; color: var(--lp-text); line-height: 1.15; margin-bottom: 0; }
+  .section-divider { display: flex; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 36px; }
+
+  .btn-see-all {
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--lp-dark); color: var(--lp-accent);
+    border: none; border-radius: 9px; padding: 9px 18px;
+    font-weight: 700; font-size: 0.82rem;
+    text-decoration: none; transition: all var(--lp-trans);
+    white-space: nowrap;
+  }
+  .btn-see-all:hover { background: #222; color: var(--lp-accent); transform: translateX(2px); }
+
+  /* ══════════════════════════════════════
+     CATEGORIES
+  ══════════════════════════════════════ */
+  .categories-section { padding: 64px 0; background: var(--lp-surface); }
+  .cat-card {
+    background: var(--lp-white);
+    border: 1px solid var(--lp-border);
+    border-radius: var(--lp-radius);
+    padding: 22px 20px;
+    text-align: center;
+    text-decoration: none;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 10px;
+    transition: all var(--lp-trans);
+    height: 100%;
+  }
+  .cat-card:hover { transform: translateY(-4px); box-shadow: var(--lp-shadow); border-color: var(--lp-dark); }
+  .cat-card .cat-icon-wrap {
+    width: 56px; height: 56px;
+    border-radius: 14px;
+    background: var(--lp-surface);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem;
+    transition: background var(--lp-trans);
+  }
+  .cat-card:hover .cat-icon-wrap { background: var(--lp-accent); }
+  .cat-card .cat-name { font-weight: 700; font-size: 0.88rem; color: var(--lp-text); }
+  .cat-card .cat-count { font-size: 0.72rem; color: var(--lp-muted); font-weight: 600; }
+
+  /* Cat icon emojis mapping */
+  .cat-icon-text { font-size: 1.5rem; line-height: 1; }
+
+  /* ══════════════════════════════════════
+     PRODUCTS GRID
+  ══════════════════════════════════════ */
+  .products-section { padding: 64px 0; background: var(--lp-white); }
+
+  .prod-card {
+    background: var(--lp-white);
+    border: 1px solid var(--lp-border);
+    border-radius: var(--lp-radius);
+    overflow: hidden;
+    transition: all var(--lp-trans);
+    height: 100%;
+    display: flex; flex-direction: column;
+  }
+  .prod-card:hover { transform: translateY(-5px); box-shadow: var(--lp-shadow-lg); }
+
+  .prod-img-wrap {
+    aspect-ratio: 1/1;
+    overflow: hidden;
+    background: var(--lp-surface);
+    position: relative;
+  }
+  .prod-img-wrap img { width:100%; height:100%; object-fit:cover; transition:transform 0.4s ease; }
+  .prod-card:hover .prod-img-wrap img { transform: scale(1.06); }
+  .prod-img-wrap .no-img { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:3rem; color:#D0D5DD; }
+
+  /* Badges on image */
+  .prod-badges { position:absolute; top:10px; left:10px; display:flex; flex-wrap:wrap; gap:5px; z-index:2; }
+  .prod-badge {
+    font-size: 0.65rem; font-weight: 800;
+    padding: 3px 8px; border-radius: 5px;
+    letter-spacing: 0.04em; text-transform: uppercase;
+  }
+  .badge-sale { background: #EF4444; color: #fff; }
+  .badge-new  { background: var(--lp-dark); color: var(--lp-accent); }
+  .badge-low  { background: #F59E0B; color: #fff; }
+  .badge-out  { background: #9CA3AF; color: #fff; }
+
+  /* Quick add overlay */
+  .prod-quick-add {
+    position: absolute; bottom: 10px; right: 10px;
+    opacity: 0; transform: translateY(6px);
+    transition: all var(--lp-trans);
+    z-index: 2;
+  }
+  .prod-card:hover .prod-quick-add { opacity: 1; transform: translateY(0); }
+  .prod-quick-btn {
+    width: 36px; height: 36px;
+    background: var(--lp-dark);
+    color: var(--lp-accent);
+    border: none; border-radius: 9px;
+    cursor: pointer; font-size: 0.9rem;
+    display: flex; align-items: center; justify-content: center;
+    transition: all var(--lp-trans); text-decoration: none;
+  }
+  .prod-quick-btn:hover { background: #333; }
+
+  .prod-body { padding: 14px 16px 16px; display: flex; flex-direction: column; flex: 1; }
+  .prod-cat { font-size: 0.68rem; color: var(--lp-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
+  .prod-name { font-weight: 700; font-size: 0.9rem; color: var(--lp-text); line-height: 1.35; margin-bottom: 8px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:2.5em; }
+  .prod-price-row { display:flex; align-items:center; gap:8px; margin-top:auto; }
+  .prod-price { font-weight: 800; font-size: 1.05rem; letter-spacing:-0.03em; color:var(--lp-text); }
+  .prod-price-old { font-size: 0.78rem; color: var(--lp-muted); text-decoration: line-through; }
+  .prod-stock { font-size: 0.7rem; color: var(--lp-muted); margin-top: 3px; display:flex; align-items:center; gap:3px; }
+
+  .prod-btn-row { display:flex; gap:7px; margin-top:12px; }
+  .btn-prod-detail {
+    flex: 0; background:var(--lp-surface); color:var(--lp-text);
+    border: 1px solid var(--lp-border); border-radius:8px; padding:8px 12px;
+    font-size:0.78rem; font-weight:700; text-decoration:none;
+    display:inline-flex; align-items:center; gap:5px;
+    transition:all var(--lp-trans); white-space:nowrap;
+  }
+  .btn-prod-detail:hover { background:#E5E7EB; color:var(--lp-text); }
+  .btn-prod-cart {
+    flex:1; background:var(--lp-dark); color:var(--lp-accent);
+    border:none; border-radius:8px; padding:8px 12px;
+    font-size:0.8rem; font-weight:700; cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    text-decoration:none; transition:all var(--lp-trans);
+  }
+  .btn-prod-cart:hover:not(:disabled) { background:#222; color:var(--lp-accent); }
+  .btn-prod-cart:disabled { background:#F3F4F6; color:#9CA3AF; cursor:not-allowed; }
+
+  /* ══════════════════════════════════════
+     BEST PRODUCTS
+  ══════════════════════════════════════ */
+  .best-section { padding: 64px 0; background: var(--lp-surface); }
+
+  .best-card {
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    background: var(--lp-dark);
+    transition: all var(--lp-trans);
+    height: 100%;
+    display: flex; flex-direction: column;
+  }
+  .best-card:hover { transform: translateY(-5px); box-shadow: var(--lp-shadow-lg); }
+  .best-img-wrap {
+    aspect-ratio: 3/2;
+    overflow: hidden;
+    position: relative;
+    background: #1a1a1a;
+  }
+  .best-img-wrap img { width:100%; height:100%; object-fit:cover; transition:transform 0.5s ease; opacity:0.85; }
+  .best-card:hover .best-img-wrap img { transform:scale(1.08); opacity:0.75; }
+  .best-img-wrap .no-img { width:100%; height:100%; display:flex; align-items:center; justify-content:center; font-size:4rem; color:rgba(255,255,255,0.1); }
+
+  /* Gradient overlay */
+  .best-img-wrap::after {
+    content:''; position:absolute; inset:0;
+    background: linear-gradient(to bottom, transparent 30%, rgba(10,10,10,0.9) 100%);
+    pointer-events: none;
+  }
+  /* Rank badge */
+  .best-rank {
+    position: absolute; top: 12px; left: 12px;
+    z-index: 3;
+    width: 30px; height: 30px;
+    background: var(--lp-accent);
+    color: var(--lp-dark);
+    border-radius: 8px;
+    font-weight: 800; font-size: 0.8rem;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .best-body { padding: 18px 20px; flex: 1; display: flex; flex-direction: column; }
+  .best-cat { font-size: 0.68rem; color: rgba(255,255,255,0.35); font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+  .best-name { font-weight: 800; font-size: 1.05rem; color: #fff; letter-spacing: -0.02em; line-height: 1.3; margin-bottom: 8px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .best-price { font-weight: 800; font-size: 1.2rem; color: var(--lp-accent); letter-spacing: -0.04em; margin-bottom: 14px; }
+  .best-btn {
+    background: rgba(232,255,71,0.12); color: var(--lp-accent);
+    border: 1.5px solid rgba(232,255,71,0.25);
+    border-radius: 9px; padding: 9px;
+    font-weight: 700; font-size: 0.82rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    text-decoration: none; width: 100%;
+    transition: all var(--lp-trans); margin-top: auto;
+  }
+  .best-btn:hover { background: var(--lp-accent); color: var(--lp-dark); }
+
+  /* ══════════════════════════════════════
+     CTA BANNER
+  ══════════════════════════════════════ */
+  .cta-section { padding: 64px 0; background: var(--lp-white); }
+  .cta-card {
+    background: var(--lp-dark);
+    border-radius: 24px;
+    padding: 56px 48px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cta-card::before {
+    content:''; position:absolute; inset:0;
+    background: radial-gradient(ellipse 60% 60% at 80% 50%, rgba(232,255,71,0.1), transparent);
+    pointer-events:none;
+  }
+  .cta-title { font-size: clamp(1.8rem, 3.5vw, 2.8rem); font-weight: 800; letter-spacing: -0.04em; color: #fff; line-height: 1.1; margin-bottom: 12px; }
+  .cta-title span { color: var(--lp-accent); }
+  .cta-sub { color: rgba(255,255,255,0.5); font-size: 0.95rem; line-height: 1.7; max-width: 420px; margin-bottom: 28px; }
+  .cta-supported { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
+  .cta-app-chip { background:rgba(255,255,255,0.08); color:rgba(255,255,255,0.55); font-size:0.72rem; font-weight:700; padding:5px 12px; border-radius:6px; letter-spacing:0.03em; }
+
+  /* ══════════════════════════════════════
+     FOOTER
+  ══════════════════════════════════════ */
+  .landing-footer { background: var(--lp-dark); padding: 64px 0 28px; }
+  .lf-brand { font-size: 1.4rem; font-weight: 800; letter-spacing: -0.04em; color: #fff; margin-bottom: 10px; }
+  .lf-brand span { color: var(--lp-accent); }
+  .lf-desc { font-size: 0.85rem; color: rgba(255,255,255,0.4); line-height: 1.75; max-width: 260px; margin-bottom: 20px; }
+  .lf-social { display:flex; gap:8px; }
+  .lf-social a { width:34px; height:34px; background:rgba(255,255,255,0.07); border-radius:8px; display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.45); text-decoration:none; font-size:0.9rem; transition:all var(--lp-trans); }
+  .lf-social a:hover { background:rgba(255,255,255,0.12); color:#fff; }
+  .lf-col-title { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.25); margin-bottom: 14px; }
+  .lf-link { display:block; font-size: 0.85rem; color: rgba(255,255,255,0.5); text-decoration:none; line-height:2.1; transition:color var(--lp-trans); }
+  .lf-link:hover { color: var(--lp-accent); }
+  .lf-divider { border-color:rgba(255,255,255,0.06); margin:40px 0 24px; }
+  .lf-copy { font-size:0.75rem; color:rgba(255,255,255,0.25); }
+
+  /* ══════════════════════════════════════
+     BACK TO TOP (landing-specific)
+  ══════════════════════════════════════ */
+  .back-top-lp {
+    position:fixed; bottom:28px; right:28px;
+    width:42px; height:42px;
+    background:var(--lp-dark); color:var(--lp-accent);
+    border:none; border-radius:11px; cursor:pointer;
+    display:none; align-items:center; justify-content:center;
+    font-size:0.9rem; box-shadow:var(--lp-shadow);
+    z-index:800; transition:all var(--lp-trans);
+  }
+  .back-top-lp:hover { transform:translateY(-2px); }
+  .back-top-lp.show { display:flex; }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ════════════════════════════════════════════
+     HERO
+════════════════════════════════════════════ -->
+<section class="hero-section">
+  <div class="hero-grid"></div>
+  <div class="hero-orb hero-orb-1"></div>
+  <div class="hero-orb hero-orb-2"></div>
+  <div class="hero-orb hero-orb-3"></div>
+
+  <div class="container position-relative">
+    <div class="row align-items-center g-5">
+
+      <!-- Copy -->
+      <div class="col-lg-6">
+        <div class="hero-badge">🛒 Platform Belanja Terpercaya</div>
+
+        <h1 class="hero-title">
+          Temukan
+          <span class="hl">Produk Impian</span>
+          Anda Di Sini
+        </h1>
+
+        <p class="hero-subtitle">
+          Belanja ribuan produk pilihan dengan harga terbaik, pembayaran aman via QRIS, dan pengiriman cepat ke seluruh Indonesia.
+        </p>
+
+        <div class="hero-cta">
+          <a href="{{ url_for('user_product.products') }}" class="btn-hero-primary">
+            <i class="bi bi-bag-heart-fill"></i> Mulai Belanja
+          </a>
+          {% if not current_user.is_authenticated %}
+          <a href="{{ url_for('auth.register') }}" class="btn-hero-outline">
+            Daftar Gratis <i class="bi bi-arrow-right"></i>
+          </a>
+          {% endif %}
+        </div>
+
+        <div class="hero-stats">
+          <div class="hero-stat">
+            <div class="stat-num">{{ products|length }}+</div>
+            <div class="stat-lbl">Produk</div>
+          </div>
+          <div class="hero-stat">
+            <div class="stat-num">{{ categories|length }}+</div>
+            <div class="stat-lbl">Kategori</div>
+          </div>
+          <div class="hero-stat">
+            <div class="stat-num">4.9★</div>
+            <div class="stat-lbl">Rating</div>
+          </div>
+        </div>
+      </div>
+
+
+
+    </div>
+  </div>
+</section>
+
+<!-- ── Ticker ── -->
+<div class="ticker-wrap">
+  <div class="ticker-track">
+    {% set tickers = ['Gratis Ongkos Kirim', 'Produk Original', 'QRIS Payment', 'Garansi Resmi', 'Flash Sale', 'Easy Return', 'Gratis Ongkos Kirim', 'Produk Original', 'QRIS Payment', 'Garansi Resmi', 'Flash Sale', 'Easy Return'] %}
+    {% for t in tickers %}<span class="ticker-item">{{ t }}</span>{% endfor %}
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     FEATURES
+════════════════════════════════════════════ -->
+<section class="features-section">
+  <div class="container">
+    <div class="row g-4">
+      {% set features = [
+        ('truck', 'Pengiriman Cepat', 'Gratis ongkir untuk pembelian di atas Rp 150.000 ke seluruh Indonesia.'),
+        ('qr-code-scan', 'QRIS Payment', 'Bayar mudah dengan scan QR dari semua dompet digital favorit Anda.'),
+        ('shield-lock-fill', 'Transaksi Aman', 'Teknologi enkripsi SSL melindungi setiap transaksi Anda.'),
+        ('arrow-repeat', 'Retur Mudah', 'Garansi retur 30 hari tanpa pertanyaan untuk semua produk.')
+      ] %}
+      {% for icon, title, desc in features %}
+      <div class="col-6 col-lg-3">
+        <div class="feature-card">
+          <div class="feature-icon"><i class="bi bi-{{ icon }}"></i></div>
+          <div>
+            <div class="feature-title">{{ title }}</div>
+            <p class="feature-desc">{{ desc }}</p>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     CATEGORIES
+════════════════════════════════════════════ -->
+{% if categories %}
+<section class="categories-section">
+  <div class="container">
+    <div class="section-divider">
+      <div>
+        <p class="section-eyebrow">Jelajahi</p>
+        <h2 class="section-title">Kategori Pilihan</h2>
+      </div>
+      <a href="{{ url_for('user_product.products') }}" class="btn-see-all">
+        Semua Produk <i class="bi bi-arrow-right"></i>
+      </a>
+    </div>
+
+    <div class="row g-3">
+      {% set cat_emojis = ['⚡','👗','🏠','📚','💄','🎮','🍳','🏃','📱','🎵','🌿','✈️'] %}
+      {% for cat in categories %}
+      <div class="col-6 col-sm-4 col-md-3 col-xl-2">
+        <a href="{{ url_for('user_product.products') }}?category_id={{ cat.id }}" class="cat-card">
+          <div class="cat-icon-wrap">
+            <span class="cat-icon-text">{{ cat_emojis[loop.index0 % cat_emojis|length] }}</span>
+          </div>
+          <div class="cat-name">{{ cat.nama_kategori }}</div>
+          <div class="cat-count">
+            {% set prod_count = cat.products | length %}
+            {{ prod_count }} produk
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- ════════════════════════════════════════════
+     PRODUCTS GRID
+════════════════════════════════════════════ -->
+<section class="products-section">
+  <div class="container">
+    <div class="section-divider">
+      <div>
+        <p class="section-eyebrow">Koleksi Terbaru</p>
+        <h2 class="section-title">Produk Unggulan</h2>
+      </div>
+      <a href="{{ url_for('user_product.products') }}" class="btn-see-all">
+        Lihat Semua <i class="bi bi-arrow-right"></i>
+      </a>
+    </div>
+
+    {% if products %}
+    <div class="row g-4">
+      {% for prod in products %}
+      <div class="col-6 col-md-4 col-lg-3">
+        <div class="prod-card">
+
+          <!-- Image -->
+          <div class="prod-img-wrap">
+            {% if prod.gambar %}
+              <img src="{{ url_for('static', filename='uploads/' + prod.gambar) }}"
+                   alt="{{ prod.nama_produk }}" loading="lazy"/>
+            {% else %}
+              <div class="no-img"><i class="bi bi-image-alt"></i></div>
+            {% endif %}
+
+            <!-- Badges -->
+            <div class="prod-badges">
+              {% if prod.stok == 0 %}
+                <span class="prod-badge badge-out">Habis</span>
+              {% elif prod.stok <= 5 %}
+                <span class="prod-badge badge-low">Sisa {{ prod.stok }}</span>
+              {% endif %}
+              {% if loop.index <= 3 %}
+                <span class="prod-badge badge-new">Baru</span>
+              {% endif %}
+            </div>
+
+            <!-- Quick add -->
+            <div class="prod-quick-add">
+              {% if prod.stok > 0 and current_user.is_authenticated %}
+              <form action="{{ url_for('cart.add', id=prod.id) }}" method="POST" style="margin:0;">
+                <input type="hidden" name="qty" value="1">
+                <button type="submit" class="prod-quick-btn" title="Tambah ke keranjang">
+                  <i class="bi bi-bag-plus-fill"></i>
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Body -->
+          <div class="prod-body">
+            {% if prod.category %}
+              <div class="prod-cat">{{ prod.category.nama_kategori }}</div>
+            {% endif %}
+            <div class="prod-name">{{ prod.nama_produk }}</div>
+
+            <div class="prod-price-row">
+              <span class="prod-price">Rp {{ "{:,.0f}".format(prod.harga) }}</span>
+            </div>
+
+            <div class="prod-stock">
+              {% if prod.stok > 0 %}
+                <i class="bi bi-check-circle-fill" style="color:#22C55E; font-size:0.65rem;"></i>
+                Stok tersedia
+              {% else %}
+                <i class="bi bi-x-circle-fill" style="color:#EF4444; font-size:0.65rem;"></i>
+                Stok habis
+              {% endif %}
+            </div>
+
+            <div class="prod-btn-row">
+              <a href="{{ url_for('user_product.product_detail', id=prod.id) }}" class="btn-prod-detail">
+                <i class="bi bi-eye"></i>
+              </a>
+
+              {% if prod.stok > 0 %}
+                {% if current_user.is_authenticated %}
+                  <form action="{{ url_for('cart.add', id=prod.id) }}" method="POST" style="flex:1; margin:0;">
+                    <input type="hidden" name="qty" value="1">
+                    <button type="submit" class="btn-prod-cart w-100">
+                      <i class="bi bi-bag-plus"></i> Keranjang
+                    </button>
+                  </form>
+                {% else %}
+                  <a href="{{ url_for('auth.login') }}" class="btn-prod-cart">
+                    <i class="bi bi-bag-plus"></i> Keranjang
+                  </a>
+                {% endif %}
+              {% else %}
+                <button class="btn-prod-cart" disabled>
+                  <i class="bi bi-bag-x"></i> Habis
+                </button>
+              {% endif %}
+            </div>
+          </div>
+
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    {% else %}
+    <div style="text-align:center; padding:60px 24px; background:var(--lp-surface); border-radius:var(--lp-radius); border:1px solid var(--lp-border);">
+      <div style="font-size:3rem; margin-bottom:14px; opacity:0.2;"><i class="bi bi-box-seam"></i></div>
+      <h5 style="font-weight:800; margin-bottom:6px;">Belum ada produk</h5>
+      <p style="color:var(--lp-muted); font-size:0.875rem;">Produk akan segera tersedia.</p>
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════
+     BEST PRODUCTS
+════════════════════════════════════════════ -->
+{% if best_products %}
+<section class="best-section">
+  <div class="container">
+    <div class="section-divider">
+      <div>
+        <p class="section-eyebrow">Paling Populer</p>
+        <h2 class="section-title" style="color:var(--lp-text);">Produk Terlaris</h2>
+      </div>
+      <a href="{{ url_for('user_product.products') }}" class="btn-see-all">
+        Lihat Semua <i class="bi bi-arrow-right"></i>
+      </a>
+    </div>
+
+    <div class="row g-4">
+      {% for prod in best_products %}
+      <div class="col-6 col-lg-3">
+        <div class="best-card">
+          <div class="best-img-wrap">
+            {% if prod.gambar %}
+              <img src="{{ url_for('static', filename='uploads/' + prod.gambar) }}"
+                   alt="{{ prod.nama_produk }}" loading="lazy"/>
+            {% else %}
+              <div class="no-img"><i class="bi bi-image-alt"></i></div>
+            {% endif %}
+            <div class="best-rank">#{{ loop.index }}</div>
+          </div>
+          <div class="best-body">
+            {% if prod.category %}
+              <div class="best-cat">{{ prod.category.nama_kategori }}</div>
+            {% endif %}
+            <div class="best-name">{{ prod.nama_produk }}</div>
+            <div class="best-price">Rp {{ "{:,.0f}".format(prod.harga) }}</div>
+
+            {% if prod.stok > 0 %}
+              {% if current_user.is_authenticated %}
+                <form action="{{ url_for('cart.add', id=prod.id) }}" method="POST" style="margin:0;">
+                  <input type="hidden" name="qty" value="1">
+                  <button type="submit" class="best-btn">
+                    <i class="bi bi-bag-plus-fill"></i> Tambah ke Keranjang
+                  </button>
+                </form>
+              {% else %}
+                <a href="{{ url_for('auth.login') }}" class="best-btn">
+                  <i class="bi bi-bag-plus-fill"></i> Login untuk Beli
+                </a>
+              {% endif %}
+            {% else %}
+              <button class="best-btn" disabled style="opacity:0.4; cursor:not-allowed;">
+                <i class="bi bi-bag-x"></i> Stok Habis
+              </button>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- ════════════════════════════════════════════
+     CTA QRIS
+════════════════════════════════════════════ -->
+<section class="cta-section">
+  <div class="container">
+    <div class="cta-card">
+      <div class="row align-items-center g-5 position-relative">
+        <div class="col-lg-7">
+          <h2 class="cta-title">
+            Belanja Mudah<br>dengan <span>QRIS</span> ✦
+          </h2>
+          <p class="cta-sub">
+            Scan QR sekali, bayar dari mana saja. Mendukung semua dompet digital populer di Indonesia. Aman, cepat, dan mudah.
+          </p>
+          {% if not current_user.is_authenticated %}
+          <a href="{{ url_for('auth.register') }}" class="btn-hero-primary">
+            Daftar Sekarang <i class="bi bi-arrow-right"></i>
+          </a>
+          {% else %}
+          <a href="{{ url_for('user_product.products') }}" class="btn-hero-primary">
+            Belanja Sekarang <i class="bi bi-bag-heart-fill"></i>
+          </a>
+          {% endif %}
+
+          <div class="cta-supported">
+            {% for app in ['GoPay','OVO','Dana','ShopeePay','LinkAja','BCA','BRI','BNI'] %}
+              <span class="cta-app-chip">{{ app }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        <div class="col-lg-5 d-none d-lg-block text-center">
+          <div style="width:160px; height:160px; background:rgba(232,255,71,0.1); border:2px solid rgba(232,255,71,0.2); border-radius:20px; display:flex; align-items:center; justify-content:center; margin:0 auto; font-size:5rem;">
+            📱
+          </div>
+          <p style="color:rgba(255,255,255,0.3); font-size:0.78rem; margin-top:14px; font-weight:600;">
+            Scan QR Code di halaman checkout
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+<!-- Back to top -->
+<button class="back-top-lp" id="backToTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+  <i class="bi bi-chevron-up"></i>
+</button>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Back to top
+  const btn = document.getElementById('backToTop');
+  window.addEventListener('scroll', () => btn.classList.toggle('show', window.scrollY > 300));
+</script>
+{% endblock %}

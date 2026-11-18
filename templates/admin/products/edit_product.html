@@ -1,0 +1,659 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block title %}Edit Produk — NexShop Admin{% endblock %}
+
+{% block page_title %}Edit Produk{% endblock %}
+{% block page_subtitle %}Perbarui informasi produk "{{ product.name }}"{% endblock %}
+
+
+
+{% block page_actions %}
+  <a href="{{ url_for('admin_product.detail_product', id=product.id) }}"
+     style="border: 1.5px solid #E8E8E2; border-radius: 9px; padding: 9px 16px; font-family: var(--font-display); font-weight: 600; font-size: 0.85rem; color: #444; text-decoration: none; display: inline-flex; align-items: center; gap: 7px; background: #fff;">
+    <i class="bi bi-eye"></i> Lihat Detail
+  </a>
+  <a href="{{ url_for('admin_product.products') }}"
+     style="border: 1.5px solid #E8E8E2; border-radius: 9px; padding: 9px 16px; font-family: var(--font-display); font-weight: 600; font-size: 0.85rem; color: #444; text-decoration: none; display: inline-flex; align-items: center; gap: 7px; background: #fff;">
+    <i class="bi bi-arrow-left"></i> Kembali
+  </a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .upload-zone {
+    border: 2px dashed #D8D8D2;
+    border-radius: 14px;
+    background: #FAFAF8;
+    padding: 28px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .upload-zone:hover, .upload-zone.drag-over {
+    border-color: #0A0A0A;
+    background: #F5F5F0;
+  }
+  .upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+  .upload-icon {
+    width: 48px; height: 48px;
+    background: #EEEEE8;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.3rem; color: #888;
+    margin: 0 auto 10px;
+  }
+
+  .current-img-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1/1;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #F0F0EA;
+    border: 1.5px solid #E8E8E2;
+    margin-bottom: 12px;
+  }
+  .current-img-wrap img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+  .current-img-wrap .img-label {
+    position: absolute;
+    bottom: 10px; left: 10px;
+    background: rgba(10,10,10,0.7);
+    color: #fff;
+    font-size: 0.7rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+    letter-spacing: 0.04em;
+  }
+  .no-img-placeholder {
+    width: 100%;
+    aspect-ratio: 1/1;
+    border-radius: 14px;
+    background: #F5F5F0;
+    border: 1.5px dashed #D8D8D2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #C0C0BA;
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+  }
+  .cat-select-wrap { position:relative; }
+  .cat-select-wrap .select-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#888; font-size:0.9rem; pointer-events:none; z-index:1; }
+  .form-select-custom {
+    width:100%; border:1.5px solid #E8E8E2; border-radius:9px;
+    padding:11px 14px 11px 38px; font-size:0.9rem;
+    font-family:var(--font-body); background:#fff; color:#0A0A0A;
+    appearance:none; -webkit-appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16'%3E%3Cpath fill='%23888' d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+    background-repeat:no-repeat; background-position:right 14px center;
+    cursor:pointer; transition:border-color 0.2s, box-shadow 0.2s; outline:none;
+  }
+  .form-select-custom:focus { border-color:#0A0A0A; box-shadow:0 0 0 3px rgba(10,10,10,0.07); }
+
+  /* Current category indicator */
+  .current-cat-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: #EDE9FE;
+    border: 1.5px solid #DDD6FE;
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.78rem;
+    color: #5B21B6;
+    margin-bottom: 8px;
+  }
+
+  .form-section-title { font-family:var(--font-display); font-weight:800; font-size:0.78rem; letter-spacing:0.08em; text-transform:uppercase; color:#AAA; margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid #F0F0EA; }
+
+  .new-preview-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1/1;
+    border-radius: 14px;
+    overflow: hidden;
+    border: 2px solid #E8FF47;
+    display: none;
+    margin-bottom: 12px;
+  }
+  .new-preview-wrap img { width: 100%; height: 100%; object-fit: cover; }
+  .new-preview-wrap .img-label {
+    position: absolute;
+    bottom: 10px; left: 10px;
+    background: #E8FF47;
+    color: #0A0A0A;
+    font-size: 0.7rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 6px;
+  }
+  .new-preview-wrap .remove-img {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 28px; height: 28px;
+    background: rgba(220,38,38,0.9);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+  }
+  .new-preview-wrap .remove-img:hover { background: #B91C1C; }
+
+  .form-input {
+    width: 100%;
+    border: 1.5px solid #E8E8E2;
+    border-radius: 9px;
+    padding: 11px 14px;
+    font-size: 0.9rem;
+    font-family: var(--font-body);
+    background: #fff;
+    color: #0A0A0A;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  .form-input:focus {
+    border-color: #0A0A0A;
+    box-shadow: 0 0 0 3px rgba(10,10,10,0.07);
+  }
+  .form-input.is-invalid { border-color: #DC2626; }
+  textarea.form-input { resize: vertical; min-height: 110px; }
+
+  .field-label {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: #0A0A0A;
+    margin-bottom: 7px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .field-label .req { color: #DC2626; }
+  .field-hint { font-size: 0.75rem; color: #AAA; margin-top: 5px; }
+
+  .invalid-text {
+    font-size: 0.78rem; color: #DC2626;
+    margin-top: 5px;
+    display: flex; align-items: center; gap: 4px;
+  }
+
+  .input-prefix-wrap { display: flex; align-items: stretch; }
+  .input-prefix {
+    background: #F5F5F0;
+    border: 1.5px solid #E8E8E2;
+    border-right: none;
+    border-radius: 9px 0 0 9px;
+    padding: 0 14px;
+    display: flex; align-items: center;
+    font-family: var(--font-display); font-weight: 700;
+    font-size: 0.85rem; color: #666;
+  }
+  .input-prefix-wrap .form-input { border-radius: 0 9px 9px 0; border-left: none; flex: 1; }
+
+  .char-count { font-size: 0.72rem; color: #AAA; text-align: right; margin-top: 4px; }
+  .form-section-title {
+    font-family: var(--font-display); font-weight: 800;
+    font-size: 0.78rem; letter-spacing: 0.08em;
+    text-transform: uppercase; color: #AAA;
+    margin-bottom: 16px; padding-bottom: 10px;
+    border-bottom: 1px solid #F0F0EA;
+  }
+
+  .btn-save {
+    background: #0A0A0A; color: #E8FF47;
+    border: none; border-radius: 10px;
+    padding: 12px 28px;
+    font-family: var(--font-display); font-weight: 700;
+    font-size: 0.9rem; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 8px;
+    transition: all 0.18s;
+  }
+  .btn-save:hover { background: #222; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(10,10,10,0.15); }
+  .btn-save:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  /* Changed indicator */
+  .changed-dot {
+    display: none;
+    width: 7px; height: 7px;
+    background: #E8FF47;
+    border-radius: 50%;
+    animation: blink 1.4s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<form
+  action="{{ url_for('admin_product.edit_product', id=product.id) }}"
+  method="POST"
+  enctype="multipart/form-data"
+  id="editForm"
+  novalidate
+>
+
+  <div class="row g-4">
+
+    <!-- ════ LEFT: Info ════ -->
+    <div class="col-lg-8">
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h6>
+            <i class="bi bi-pencil-square me-2" style="color: #888;"></i>Edit Informasi Produk
+          </h6>
+          <div class="d-flex align-items-center gap-2">
+            <span class="changed-dot" id="changedDot"></span>
+            <span style="font-size: 0.75rem; color: #AAA;" id="changedLabel"></span>
+          </div>
+        </div>
+        <div class="p-4">
+
+          <p class="form-section-title">Detail Utama</p>
+
+          <!-- Nama Produk -->
+          <div class="mb-4">
+            <label class="field-label" for="name">
+              Nama Produk <span class="req">*</span>
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="nama_produk"
+              class="form-input"
+              placeholder="Nama produk"
+              maxlength="100"
+              required
+              value="{{ product.nama_produk }}"
+              oninput="updateCharCount(this, 'nameCount', 100); markChanged();"
+            />
+            <div class="d-flex justify-content-between align-items-center mt-1">
+              <div class="invalid-text d-none" id="nameError">
+                <i class="bi bi-exclamation-circle-fill"></i> Nama produk wajib diisi
+              </div>
+              <div class="char-count ms-auto" id="nameCount">{{ product.nama_produk|length }} / 100</div>
+            </div>
+          </div>
+
+          <!-- Deskripsi -->
+          <div class="mb-4">
+            <label class="field-label" for="description">Deskripsi Produk</label>
+            <textarea
+              id="description"
+              name="deskripsi"
+              class="form-input"
+              placeholder="Deskripsi lengkap produk…"
+              maxlength="1000"
+              rows="5"
+              oninput="updateCharCount(this, 'descCount', 1000); markChanged();"
+            >{{ product.deskripsi or '' }}</textarea>
+            <div class="char-count" id="descCount">{{ (product.deskripsi or '')|length }} / 1000</div>
+          </div>
+
+                    <div class="field-wrap">
+            <label class="field-label" for="category_id">
+              <i class="bi bi-tags" style="color:#888;"></i>
+              Kategori Produk
+            </label>
+
+            <!-- Current category indicator -->
+            {% if product.category %}
+              <div class="current-cat-indicator">
+                <i class="bi bi-tag-fill"></i>
+                Kategori saat ini: <strong>{{ product.category.nama_kategori }}</strong>
+              </div>
+            {% endif %}
+
+            <div class="cat-select-wrap">
+              <i class="bi bi-tag-fill select-icon"></i>
+              <select
+                id="category_id"
+                name="category_id"
+                class="form-select-custom"
+                onchange="markChanged();"
+              >
+                <option value="">— Tanpa Kategori —</option>
+                {% if categories %}
+                  {% for category in categories %}
+                    <option
+                      value="{{ category.id }}"
+                      {#
+                        AUTO-SELECT: bandingkan category_id produk saat ini
+                        dengan id masing-masing kategori di loop
+                      #}
+                      {{ 'selected' if product.category_id == category.id }}
+                    >
+                      {{ category.nama_kategori }}
+                    </option>
+                  {% endfor %}
+                {% endif %}
+              </select>
+            </div>
+
+            {% if not categories %}
+              <div style="background:#FEF9C3; border:1.5px solid #FDE68A; border-radius:9px; padding:10px 14px; font-size:0.8rem; color:#854D0E; display:flex; align-items:center; gap:8px; margin-top:8px;">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                Belum ada kategori. <a href="{{ url_for('category_admin.create') }}" style="color:#854D0E; font-weight:700;">Tambah kategori →</a>
+              </div>
+            {% else %}
+              <div class="field-hint">
+                <a href="{{ url_for('category_admin.index') }}" style="color:#2563EB; font-family:var(--font-display); font-weight:600;">Kelola kategori →</a>
+              </div>
+            {% endif %}
+          </div>
+
+          <p class="form-section-title">Harga &amp; Stok</p>
+
+          <div class="row g-3">
+            <!-- Harga -->
+            <div class="col-md-6">
+              <label class="field-label" for="price">
+                Harga Jual <span class="req">*</span>
+              </label>
+              <div class="input-prefix-wrap">
+                <span class="input-prefix">Rp</span>
+                <input
+                  type="number"
+                  id="price"
+                  name="harga"
+                  class="form-input"
+                  min="0"
+                  step="100"
+                  required
+                  value="{{ product.harga }}"
+                  oninput="markChanged();"
+                />
+              </div>
+              <div class="invalid-text d-none" id="priceError">
+                <i class="bi bi-exclamation-circle-fill"></i> Harga wajib diisi
+              </div>
+            </div>
+
+            <!-- Stok -->
+            <div class="col-md-6">
+              <label class="field-label" for="stock">
+                Jumlah Stok <span class="req">*</span>
+              </label>
+              <input
+                type="number"
+                id="stock"
+                name="stok"
+                class="form-input"
+                min="0"
+                required
+                value="{{ product.stok }}"
+                oninput="markChanged();"
+              />
+              <div class="invalid-text d-none" id="stockError">
+                <i class="bi bi-exclamation-circle-fill"></i> Stok wajib diisi
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Metadata card -->
+   
+    </div>
+
+    <!-- ════ RIGHT: Image ════ -->
+    <div class="col-lg-4">
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h6><i class="bi bi-image me-2" style="color: #888;"></i>Foto Produk</h6>
+        </div>
+        <div class="p-4">
+
+          <!-- Existing image -->
+          {% if product.gambar %}
+            <div class="current-img-wrap" id="currentImgWrap">
+              <img
+                src="{{ url_for('static', filename='uploads/' + product.gambar) }}"
+                alt="{{ product.nama_produk }}"
+                id="currentImg"
+              />
+              <span class="img-label">Foto Saat Ini</span>
+            </div>
+          {% else %}
+            <div class="no-img-placeholder" id="currentImgWrap">
+              <i class="bi bi-image-alt"></i>
+              <span style="font-size: 0.8rem; color: #CCC;">Belum ada foto</span>
+            </div>
+          {% endif %}
+
+          <!-- New image preview -->
+          <div class="new-preview-wrap" id="newPreviewWrap">
+            <img id="newPreviewImg" src="" alt="Foto Baru"/>
+            <span class="img-label">Foto Baru ✦</span>
+            <button type="button" class="remove-img" onclick="cancelNewImage()" title="Batalkan perubahan foto">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+
+          <!-- Upload zone -->
+          <div class="upload-zone" id="uploadZone">
+            <input
+              type="file"
+              id="image"
+              name="image"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onchange="handleNewImage(this)"
+            />
+            <div class="upload-icon"><i class="bi bi-arrow-repeat"></i></div>
+            <h6 style="font-family: var(--font-display); font-weight: 700; font-size: 0.88rem; color: #333; margin-bottom: 4px;">
+              {% if product.gambar %}Ganti Foto{% else %}Upload Foto{% endif %}
+            </h6>
+            <p style="font-size: 0.75rem; color: #AAA; margin: 0;">JPG, PNG, WebP — Maks. 2 MB</p>
+          </div>
+
+          <div class="invalid-text d-none mt-2" id="imageError">
+            <i class="bi bi-exclamation-circle-fill"></i>
+            <span id="imageErrorMsg"></span>
+          </div>
+
+          <div class="field-hint mt-2">
+            <i class="bi bi-info-circle me-1"></i>
+            Kosongkan jika tidak ingin mengganti foto.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Action buttons ── -->
+  <div class="d-flex align-items-center justify-content-between mt-4 pt-2"
+       style="border-top: 1px solid #EAEAE4;">
+    <a href="{{ url_for('admin_product.products') }}"
+       style="font-family: var(--font-display); font-weight: 600; font-size: 0.875rem; color: #666; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <i class="bi bi-arrow-left"></i> Batal &amp; Kembali
+    </a>
+    <div class="d-flex gap-2">
+      <button type="button" onclick="undoChanges()"
+        style="border: 1.5px solid #E8E8E2; border-radius: 9px; padding: 10px 20px; font-family: var(--font-display); font-weight: 600; font-size: 0.875rem; color: #555; background: #fff; cursor: pointer; display: inline-flex; align-items: center; gap: 7px;">
+        <i class="bi bi-arrow-counterclockwise"></i> Undo
+      </button>
+      <button type="submit" class="btn-save" id="btnSave">
+        <i class="bi bi-check2-circle"></i> Simpan Perubahan
+      </button>
+    </div>
+  </div>
+
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Original values for undo
+ const originalValues = {
+    name: '{{ product.nama_produk|default("", true) }}',
+    description: `{{ product.deskripsi|default("", true) }}`,
+    price: '{{ product.harga }}',
+    stock: '{{ product.stok }}'
+};
+
+  let isChanged = false;
+
+  function markChanged() {
+    if (!isChanged) {
+      isChanged = true;
+      document.getElementById('changedDot').style.display = 'block';
+      document.getElementById('changedLabel').textContent = 'Ada perubahan';
+    }
+  }
+
+ function undoChanges() {
+    document.getElementById('name').value = originalValues.name;
+    document.getElementById('description').value = originalValues.description;
+    document.getElementById('price').value = originalValues.price;
+    document.getElementById('stock').value = originalValues.stock;
+
+    updateCharCount(
+        document.getElementById('name'),
+        'nameCount',
+        100
+    );
+
+    updateCharCount(
+        document.getElementById('description'),
+        'descCount',
+        1000
+    );
+
+    cancelNewImage();
+
+    isChanged = false;
+
+    document.getElementById('changedDot').style.display = 'none';
+    document.getElementById('changedLabel').textContent = '';
+}
+
+  function updateCharCount(el, countId, max) {
+    document.getElementById(countId).textContent = `${el.value.length} / ${max}`;
+  }
+
+  function handleNewImage(input) {
+    const file = input.files[0];
+    const errEl  = document.getElementById('imageError');
+    const errMsg = document.getElementById('imageErrorMsg');
+    errEl.classList.add('d-none');
+
+    if (!file) return;
+
+    const validTypes = ['image/jpeg','image/png','image/webp','image/gif'];
+    if (!validTypes.includes(file.type)) {
+      errMsg.textContent = 'Format tidak didukung. Gunakan JPG, PNG, atau WebP.';
+      errEl.classList.remove('d-none');
+      input.value = '';
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      errMsg.textContent = 'File terlalu besar. Maks. 2 MB.';
+      errEl.classList.remove('d-none');
+      input.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('newPreviewImg').src = e.target.result;
+      document.getElementById('newPreviewWrap').style.display = 'block';
+      document.getElementById('currentImgWrap').style.opacity = '0.35';
+      document.getElementById('uploadZone').style.display = 'none';
+      markChanged();
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function cancelNewImage() {
+    document.getElementById('image').value = '';
+    document.getElementById('newPreviewImg').src = '';
+    document.getElementById('newPreviewWrap').style.display = 'none';
+    document.getElementById('currentImgWrap').style.opacity = '1';
+    document.getElementById('uploadZone').style.display = 'block';
+  }
+
+  // Drag & drop
+  const zone = document.getElementById('uploadZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const inp = document.getElementById('image');
+    if (e.dataTransfer.files.length) {
+      inp.files = e.dataTransfer.files;
+      handleNewImage(inp);
+    }
+  });
+
+  // Validation on submit
+  document.getElementById('editForm').addEventListener('submit', function(e) {
+    let valid = true;
+    const name  = document.getElementById('name');
+    const price = document.getElementById('price');
+    const stock = document.getElementById('stock');
+
+    ['name','price','stock'].forEach(id => {
+      document.getElementById(id).classList.remove('is-invalid');
+      document.getElementById(id + 'Error').classList.add('d-none');
+    });
+
+    if (!name.value.trim()) {
+      name.classList.add('is-invalid');
+      document.getElementById('nameError').classList.remove('d-none');
+      valid = false;
+    }
+    if (!price.value || parseFloat(price.value) < 0) {
+      price.classList.add('is-invalid');
+      document.getElementById('priceError').classList.remove('d-none');
+      valid = false;
+    }
+    if (stock.value === '' || parseInt(stock.value) < 0) {
+      stock.classList.add('is-invalid');
+      document.getElementById('stockError').classList.remove('d-none');
+      valid = false;
+    }
+
+    if (!valid) {
+      e.preventDefault();
+    } else {
+      const btn = document.getElementById('btnSave');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan…';
+    }
+  });
+
+  // Guard: warn before leaving with unsaved changes
+  window.addEventListener('beforeunload', e => {
+    if (isChanged) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+  document.getElementById('editForm').addEventListener('submit', () => { isChanged = false; });
+</script>
+{% endblock %}

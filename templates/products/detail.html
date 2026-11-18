@@ -1,0 +1,537 @@
+{% extends 'layouts/base.html' %}
+{% block title %}{{ product.nama_produk }} — NexShop{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── Breadcrumb ── */
+  .detail-breadcrumb {
+    padding: 16px 0;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 0;
+  }
+  .detail-breadcrumb a {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.15s;
+  }
+  .detail-breadcrumb a:hover { color: var(--primary); }
+  .detail-breadcrumb .sep { opacity: 0.4; }
+  .detail-breadcrumb .current {
+    color: var(--primary);
+    font-family: var(--font-display);
+    font-weight: 600;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── Image gallery area ── */
+  .product-img-main {
+    aspect-ratio: 1/1;
+    border-radius: 20px;
+    overflow: hidden;
+    background: var(--surface-2);
+    border: 1.5px solid var(--border);
+    position: relative;
+  }
+  .product-img-main img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+    cursor: zoom-in;
+  }
+  .product-img-main:hover img { transform: scale(1.04); }
+  .product-img-main .no-img {
+    width: 100%; height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 10px; color: #CCC; font-size: 4rem;
+  }
+
+  /* Zoom hint */
+  .zoom-hint {
+    position: absolute;
+    bottom: 12px; right: 12px;
+    background: rgba(10,10,10,0.55);
+    color: #fff;
+    font-size: 0.72rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    letter-spacing: 0.03em;
+    pointer-events: none;
+  }
+
+  /* ── Info panel ── */
+  .detail-title {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    letter-spacing: -0.04em;
+    color: var(--primary);
+    line-height: 1.2;
+    margin-bottom: 14px;
+  }
+  .detail-price {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 2.2rem;
+    letter-spacing: -0.05em;
+    color: var(--primary);
+    line-height: 1;
+    margin-bottom: 18px;
+  }
+
+  /* Stock pill */
+  .stock-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 14px;
+    border-radius: 9px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+  .stock-pill.ok    { background: #DCFCE7; color: #166534; }
+  .stock-pill.low   { background: #FEF9C3; color: #854D0E; }
+  .stock-pill.empty { background: #FEE2E2; color: #991B1B; }
+
+  /* Divider */
+  .info-divider {
+    border-color: var(--border);
+    margin: 20px 0;
+  }
+
+  /* Qty selector */
+  .qty-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    width: fit-content;
+  }
+  .qty-btn {
+    width: 42px; height: 44px;
+    background: var(--surface-2);
+    border: none;
+    cursor: pointer;
+    font-size: 1.1rem;
+    color: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .qty-btn:hover:not(:disabled) { background: #E0E0D8; }
+  .qty-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .qty-input {
+    width: 56px;
+    border: none;
+    border-left: 1.5px solid var(--border);
+    border-right: 1.5px solid var(--border);
+    text-align: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--primary);
+    height: 44px;
+    outline: none;
+    background: var(--white);
+    -moz-appearance: textfield;
+  }
+  .qty-input::-webkit-outer-spin-button,
+  .qty-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+  /* Buttons */
+  .btn-add-cart {
+    flex: 1;
+    background: var(--primary);
+    color: var(--accent);
+    border: none;
+    border-radius: 11px;
+    padding: 14px 24px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    gap: 9px;
+    transition: all 0.18s;
+    text-decoration: none;
+  }
+  .btn-add-cart:hover { background: #222; color: var(--accent); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(10,10,10,0.12); }
+  .btn-add-cart:disabled { background: #E8E8E2; color: #AAA; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  .btn-back {
+    background: var(--surface-2);
+    color: var(--primary);
+    border: none;
+    border-radius: 11px;
+    padding: 14px 22px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 7px;
+    text-decoration: none;
+    transition: background 0.18s;
+  }
+  .btn-back:hover { background: #E0E0D8; color: var(--primary); }
+
+  /* Description box */
+  .desc-box {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    font-size: 0.9rem;
+    line-height: 1.8;
+    color: #444;
+  }
+
+  /* Feature chips */
+  .feature-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--surface-2);
+    border-radius: 8px;
+    padding: 7px 13px;
+    font-size: 0.8rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+    color: var(--text-muted);
+  }
+  .chip i { color: var(--primary); }
+
+  /* ── Related products ── */
+  .related-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .related-card:hover { transform: translateY(-4px); box-shadow: 0 12px 36px rgba(0,0,0,0.08); }
+  .related-img {
+    aspect-ratio: 1/1;
+    background: var(--surface-2);
+    overflow: hidden;
+  }
+  .related-img img { width:100%; height:100%; object-fit:cover; }
+  .related-body { padding: 12px 14px; }
+  .related-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--primary);
+    margin-bottom: 4px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .related-price {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: var(--primary);
+  }
+
+  /* ── Lightbox ── */
+  #lightboxImg {
+    max-width: 100%;
+    max-height: 85vh;
+    object-fit: contain;
+    border-radius: 12px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Breadcrumb -->
+<div class="container">
+  <nav class="detail-breadcrumb">
+    <a href="{{ url_for('landing.index') }}"><i class="bi bi-house"></i></a>
+    <span class="sep">/</span>
+    <a href="{{ url_for('user_product.products') }}">Produk</a>
+    <span class="sep">/</span>
+    <span class="current">{{ product.nama_produk }}</span>
+  </nav>
+</div>
+
+<!-- ════════════════════════════════════════
+     MAIN DETAIL
+════════════════════════════════════════ -->
+<section class="py-5">
+  <div class="container">
+    <div class="row g-5 align-items-start">
+
+      <!-- ════ LEFT: Image ════ -->
+      <div class="col-lg-5">
+        <div class="product-img-main" id="mainImgWrap">
+          {% if product.gambar %}
+            <img
+              id="mainImg"
+              src="{{ url_for('static', filename='uploads/' + product.gambar) }}"
+              alt="{{ product.nama_produk }}"
+              onclick="openLightbox()"
+            />
+            <div class="zoom-hint"><i class="bi bi-zoom-in"></i> Klik untuk perbesar</div>
+          {% else %}
+            <div class="no-img">
+              <i class="bi bi-image-alt"></i>
+              <span style="font-size:0.85rem;">Tidak ada foto</span>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- ════ RIGHT: Info ════ -->
+      <div class="col-lg-7">
+
+        <!-- Name & price -->
+        <h1 class="detail-title">{{ product.nama_produk }}</h1>
+        <div class="detail-price">Rp {{ "{:,.0f}".format(product.harga) }}</div>
+
+        <!-- Stock status -->
+        <div class="mb-4">
+          {% if product.stok == 0 %}
+            <span class="stock-pill empty">
+              <i class="bi bi-x-circle-fill"></i> Stok Habis
+            </span>
+          {% elif product.stok <= 5 %}
+            <span class="stock-pill low">
+              <i class="bi bi-exclamation-circle-fill"></i>
+              Hampir Habis — Sisa {{ product.stok }} unit
+            </span>
+          {% else %}
+            <span class="stock-pill ok">
+              <i class="bi bi-check-circle-fill"></i>
+              Tersedia — {{ product.stok }} unit
+            </span>
+          {% endif %}
+        </div>
+
+        <hr class="info-divider">
+
+        <!-- Description -->
+        {% if product.deskripsi %}
+        <div class="mb-4">
+          <p style="font-family:var(--font-display); font-weight:700; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.07em; color:#AAA; margin-bottom:10px;">
+            Deskripsi Produk
+          </p>
+          <div class="desc-box">{{ product.deskripsi }}</div>
+        </div>
+        {% endif %}
+
+        <!-- Feature chips -->
+        <div class="feature-chips mb-4">
+          <span class="chip"><i class="bi bi-shield-check"></i> Produk Original</span>
+          <span class="chip"><i class="bi bi-truck"></i> Gratis Ongkir</span>
+          <span class="chip"><i class="bi bi-arrow-repeat"></i> Retur 30 Hari</span>
+        </div>
+
+        <hr class="info-divider">
+
+        <!-- Add to cart form -->
+        {% if product.stok > 0 %}
+          {% if current_user.is_authenticated %}
+        <form action="{{ url_for('cart.add', id=product.id) }}" method="POST" id="cartForm">
+            <div class="mb-4">
+              <label style="font-family:var(--font-display); font-weight:700; font-size:0.82rem; text-transform:uppercase; letter-spacing:0.07em; color:#AAA; display:block; margin-bottom:10px;">
+                Jumlah
+              </label>
+              <div class="d-flex align-items-center gap-3 flex-wrap">
+                <div class="qty-wrap">
+                  <button type="button" class="qty-btn" id="btnMinus" onclick="changeQty(-1)">
+                    <i class="bi bi-dash"></i>
+                  </button>
+                  <input
+                    type="number"
+                    id="qtyInput"
+                    name="qty"
+                    class="qty-input"
+                    value="1"
+                    min="1"
+                    max="{{ product.stok }}"
+                    readonly
+                  />
+                  <button type="button" class="qty-btn" id="btnPlus" onclick="changeQty(1)">
+                    <i class="bi bi-plus"></i>
+                  </button>
+                </div>
+                <span style="font-size:0.8rem; color:var(--text-muted); font-family:var(--font-display);">
+                  Maks. {{ product.stok }} unit
+                </span>
+              </div>
+            </div>
+
+            <div class="d-flex gap-3 flex-wrap">
+              <button type="submit" class="btn-add-cart" style="min-width: 200px;">
+                <i class="bi bi-bag-plus-fill"></i> Tambah ke Keranjang
+              </button>
+              <a href="{{ url_for('user_product.products') }}" class="btn-back">
+                <i class="bi bi-arrow-left"></i> Kembali
+              </a>
+            </div>
+          </form>
+
+          {% else %}
+          <!-- Not logged in -->
+          <div style="background:#F5F5F0; border:1.5px solid var(--border); border-radius:12px; padding:20px;" class="mb-4">
+            <p style="font-size:0.875rem; color:#666; margin-bottom:14px;">
+              <i class="bi bi-lock me-2"></i>
+              Silakan login terlebih dahulu untuk menambahkan ke keranjang.
+            </p>
+            <div class="d-flex gap-2">
+              <a href="{{ url_for('auth.login') }}" class="btn-add-cart" style="min-width:130px; flex:0 0 auto;">
+                <i class="bi bi-box-arrow-in-right"></i> Login
+              </a>
+              <a href="{{ url_for('auth.register') }}" class="btn-back text-decoration-none">
+                Daftar Gratis
+              </a>
+            </div>
+          </div>
+          <a href="{{ url_for('user_product.products') }}" class="btn-back">
+            <i class="bi bi-arrow-left"></i> Kembali ke Produk
+          </a>
+          {% endif %}
+
+        {% else %}
+          <!-- Out of stock -->
+          <button class="btn-add-cart mb-3" disabled style="min-width:200px;">
+            <i class="bi bi-bag-x"></i> Stok Habis
+          </button>
+          <br>
+          <a href="{{ url_for('user_product.products') }}" class="btn-back">
+            <i class="bi bi-arrow-left"></i> Kembali ke Produk
+          </a>
+        {% endif %}
+
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════
+     RELATED PRODUCTS
+════════════════════════════════════════ -->
+{% if related %}
+<section class="pb-5">
+  <div class="container">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+      <div>
+        <p style="font-family:var(--font-display); font-weight:700; font-size:0.72rem; letter-spacing:0.1em; text-transform:uppercase; color:var(--text-muted); margin-bottom:4px;">
+          Mungkin kamu suka
+        </p>
+        <h3 style="font-family:var(--font-display); font-weight:800; font-size:1.5rem; letter-spacing:-0.03em; margin:0;">
+          Produk Lainnya
+          
+        </h3>
+      </div>
+      <a href="{{ url_for('user_product.products') }}"
+         style="font-family:var(--font-display); font-weight:700; font-size:0.85rem; color:var(--primary); text-decoration:none; display:flex; align-items:center; gap:5px;">
+        Lihat Semua <i class="bi bi-arrow-right"></i>
+      </a>
+    </div>
+
+    <div class="row g-3">
+      {% for item in related %}
+      <div class="col-6 col-md-3">
+        <a href="{{ url_for('user_product.product_detail', id=item.id) }}" class="text-decoration-none">
+          <div class="related-card">
+            <div class="related-img">
+              {% if item.gambar %}
+                <img src="{{ url_for('static', filename='uploads/' + item.gambar) }}" alt="{{ item.nama_produk }}" loading="lazy">
+              {% else %}
+                <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:2.5rem;color:#CCC;background:var(--surface-2);">
+                  <i class="bi bi-image-alt"></i>
+                </div>
+              {% endif %}
+            </div>
+            <div class="related-body">
+              <p class="related-name">{{ item.nama_produk }}</p>
+              <p class="related-price mb-0">Rp {{ "{:,.0f}".format(item.harga) }}</p>
+            </div>
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<!-- ════════════════════════════════════════
+     LIGHTBOX
+════════════════════════════════════════ -->
+{% if product.gambar %}
+<div class="modal fade" id="lightboxModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0" style="background:transparent; box-shadow:none;">
+      <div class="modal-body p-0 text-center position-relative">
+        <button
+          data-bs-dismiss="modal"
+          style="position:absolute; top:-14px; right:-14px; width:36px; height:36px; background:rgba(255,255,255,0.92); border:none; border-radius:50%; cursor:pointer; display:flex; align-items:center; justify-content:center; z-index:10; box-shadow:0 4px 16px rgba(0,0,0,0.15);"
+        ><i class="bi bi-x" style="font-size:1rem;"></i></button>
+        <img
+          id="lightboxImg"
+          src="{{ url_for('static', filename='uploads/' + product.gambar) }}"
+          alt="{{ product.nama_produk }}"
+        />
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // ── Quantity control ───────────────────
+  const MAX_QTY = {{ product.stok }};
+
+  function changeQty(delta) {
+    const input  = document.getElementById('qtyInput');
+    const minus  = document.getElementById('btnMinus');
+    const plus   = document.getElementById('btnPlus');
+    let val = parseInt(input.value) + delta;
+
+    if (val < 1)       val = 1;
+    if (val > MAX_QTY) val = MAX_QTY;
+
+    input.value       = val;
+    minus.disabled    = (val <= 1);
+    plus.disabled     = (val >= MAX_QTY);
+  }
+
+  // Disable minus at start
+  window.addEventListener('DOMContentLoaded', () => {
+    const minus = document.getElementById('btnMinus');
+    if (minus) minus.disabled = true;
+  });
+
+  // ── Lightbox ───────────────────────────
+  function openLightbox() {
+    {% if product.gambar %}
+    const modal = new bootstrap.Modal(document.getElementById('lightboxModal'));
+    modal.show();
+    {% endif %}
+  }
+</script>
+{% endblock %}

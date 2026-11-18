@@ -1,0 +1,331 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block title %}Tambah Kategori — NexShop Admin{% endblock %}
+{% block page_title %}Tambah Kategori Baru{% endblock %}
+{% block page_subtitle %}Buat kategori baru untuk mengorganisasi produk{% endblock %}
+
+{% block breadcrumb %}
+  <li class="breadcrumb-item">
+    <a href="{{ url_for('dashboard.index') }}" class="text-muted text-decoration-none">Admin</a>
+  </li>
+  <li class="breadcrumb-item">
+    <a href="{{ url_for('category_admin.index') }}" class="text-muted text-decoration-none">Kategori</a>
+  </li>
+  <li class="breadcrumb-item active text-muted">Tambah</li>
+{% endblock %}
+
+{% block page_actions %}
+  <a href="{{ url_for('category_admin.index') }}"
+     style="border:1.5px solid #E8E8E2; border-radius:9px; padding:9px 16px; font-family:var(--font-display); font-weight:600; font-size:0.85rem; color:#444; text-decoration:none; display:inline-flex; align-items:center; gap:7px; background:#fff;">
+    <i class="bi bi-arrow-left"></i> Kembali
+  </a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .form-card {
+    background: #fff;
+    border: 1px solid #E8E8E2;
+    border-radius: 16px;
+    overflow: hidden;
+  }
+  .form-card-header {
+    padding: 18px 24px;
+    border-bottom: 1px solid #F0F0EA;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .form-card-header .step-no {
+    width: 28px; height: 28px;
+    background: #0A0A0A;
+    color: #E8FF47;
+    border-radius: 50%;
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 0.82rem;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .form-card-header h6 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin: 0;
+    color: #0A0A0A;
+  }
+
+  /* Field */
+  .field-label {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.82rem;
+    color: #0A0A0A;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 8px;
+  }
+  .field-label .req { color: #DC2626; }
+
+  .form-input {
+    width: 100%;
+    border: 1.5px solid #E8E8E2;
+    border-radius: 10px;
+    padding: 13px 16px;
+    font-size: 0.9rem;
+    font-family: var(--font-body);
+    background: #FAFAF8;
+    color: #0A0A0A;
+    transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+    outline: none;
+  }
+  .form-input:focus {
+    border-color: #0A0A0A;
+    box-shadow: 0 0 0 3px rgba(10,10,10,0.07);
+    background: #fff;
+  }
+  .form-input.is-invalid { border-color: #DC2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.07); }
+  .field-hint { font-size: 0.76rem; color: #AAA; margin-top: 6px; }
+  .invalid-msg { font-size: 0.78rem; color: #DC2626; margin-top: 6px; display: none; align-items: center; gap: 4px; }
+
+  /* Character counter */
+  .char-count { font-size: 0.72rem; color: #AAA; text-align: right; margin-top: 5px; }
+
+  /* Preview tag */
+  .preview-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #F5F5F0;
+    border: 1.5px solid #E8E8E2;
+    border-radius: 9px;
+    padding: 9px 16px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.875rem;
+    color: #333;
+    margin-top: 10px;
+    transition: all 0.2s;
+  }
+  .preview-tag i { font-size: 0.9rem; color: #888; }
+
+  /* Buttons */
+  .btn-save {
+    background: #0A0A0A;
+    color: #E8FF47;
+    border: none;
+    border-radius: 11px;
+    padding: 13px 28px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.18s;
+  }
+  .btn-save:hover { background: #222; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(10,10,10,0.14); }
+  .btn-save:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .btn-back-link {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #666;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.15s;
+  }
+  .btn-back-link:hover { color: #0A0A0A; }
+
+  /* Flash */
+  .flash-msg { border:none; border-radius:10px; padding:11px 16px; font-size:0.875rem; display:flex; align-items:center; gap:9px; margin-bottom:16px; font-weight:500; }
+  .flash-success { background:#DCFCE7; color:#166534; }
+  .flash-danger  { background:#FEE2E2; color:#991B1B; }
+
+  /* Tips */
+  .tips-card {
+    background: #FAFAF8;
+    border: 1px solid #F0F0EA;
+    border-radius: 14px;
+    padding: 18px 20px;
+  }
+  .tips-card h6 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #AAA;
+    margin-bottom: 12px;
+  }
+  .tips-card ul {
+    font-size: 0.82rem;
+    color: #666;
+    line-height: 1.9;
+    margin: 0;
+    padding-left: 16px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- Flash -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for cat, message in messages %}
+      <div class="flash-msg {{ 'flash-success' if cat == 'success' else 'flash-danger' }}">
+        <i class="bi {{ 'bi-check-circle-fill' if cat == 'success' else 'bi-exclamation-circle-fill' }}"></i>
+        {{ message | safe }}
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<div class="row g-4">
+
+  <!-- ════ Form ════ -->
+  <div class="col-lg-7">
+    <div class="form-card">
+      <div class="form-card-header">
+        <span class="step-no">1</span>
+        <h6>Informasi Kategori</h6>
+      </div>
+
+      <div class="p-4">
+        <form
+          action="{{ url_for('category_admin.create') }}"
+          method="POST"
+          id="createCatForm"
+          novalidate
+        >
+          <!-- Nama Kategori -->
+          <div class="mb-4">
+            <label class="field-label" for="nama_kategori">
+              Nama Kategori <span class="req">*</span>
+            </label>
+            <input
+              type="text"
+              id="nama_kategori"
+              name="nama_kategori"
+              class="form-input"
+              placeholder="Contoh: Elektronik, Fashion, Olahraga…"
+              maxlength="100"
+              required
+              autocomplete="off"
+              value="{{ nama }}"
+              oninput="updatePreview(this.value); updateChar(this, 'charCount', 100);"
+            />
+            <div class="d-flex justify-content-between align-items-start mt-1 flex-wrap gap-1">
+              <div class="invalid-msg" id="namaError">
+                <i class="bi bi-exclamation-circle-fill"></i> Nama kategori tidak boleh kosong
+              </div>
+              <div class="char-count ms-auto" id="charCount">0 / 100</div>
+            </div>
+            <div class="field-hint">Gunakan nama yang jelas dan mudah dipahami. Maks. 100 karakter.</div>
+
+            <!-- Live preview -->
+            <div id="previewTag" class="preview-tag" style="{{ 'display:none;' if not nama }}">
+              <i class="bi bi-tag-fill"></i>
+              <span id="previewTagText">{{ nama }}</span>
+            </div>
+          </div>
+
+          <!-- Action buttons -->
+          <div class="d-flex align-items-center justify-content-between mt-3 pt-3"
+               style="border-top:1px solid #F5F5F0;">
+            <a href="{{ url_for('category_admin.index') }}" class="btn-back-link">
+              <i class="bi bi-arrow-left"></i> Batal
+            </a>
+            <button type="submit" class="btn-save" id="btnSave">
+              <i class="bi bi-floppy"></i> Simpan Kategori
+            </button>
+          </div>
+
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ Tips ════ -->
+  <div class="col-lg-5">
+    <div class="tips-card">
+      <h6><i class="bi bi-lightbulb-fill me-2" style="color:#D97706;"></i>Tips Kategori Bagus</h6>
+      <ul>
+        <li>Nama kategori singkat dan deskriptif</li>
+        <li>Hindari nama yang terlalu umum seperti "Lainnya"</li>
+        <li>Gunakan kata benda, bukan kata kerja</li>
+        <li>Konsisten dengan kapitalisasi (misal: Elektronik bukan elektronik)</li>
+        <li>Kategori membantu pelanggan menemukan produk lebih cepat</li>
+      </ul>
+    </div>
+
+    <!-- Existing categories preview -->
+    <div style="background:#fff; border:1px solid #E8E8E2; border-radius:14px; padding:18px 20px; margin-top:16px;">
+      <h6 style="font-family:var(--font-display); font-weight:700; font-size:0.78rem; text-transform:uppercase; letter-spacing:0.07em; color:#AAA; margin-bottom:12px;">
+        <i class="bi bi-grid me-1"></i>Kategori yang Sudah Ada
+      </h6>
+      <a href="{{ url_for('category_admin.index') }}"
+         style="font-family:var(--font-display); font-weight:600; font-size:0.82rem; color:#2563EB; text-decoration:none;">
+        Lihat semua kategori →
+      </a>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function updatePreview(val) {
+    const tag  = document.getElementById('previewTag');
+    const text = document.getElementById('previewTagText');
+    if (val.trim()) {
+      tag.style.display  = 'inline-flex';
+      text.textContent   = val.trim();
+    } else {
+      tag.style.display  = 'none';
+    }
+  }
+
+  function updateChar(el, countId, max) {
+    document.getElementById(countId).textContent = `${el.value.length} / ${max}`;
+  }
+
+  // Init
+  const inp = document.getElementById('nama_kategori');
+  if (inp) {
+    updateChar(inp, 'charCount', 100);
+    if (inp.value) updatePreview(inp.value);
+  }
+
+  // Validation
+  document.getElementById('createCatForm').addEventListener('submit', function(e) {
+    const inp = document.getElementById('nama_kategori');
+    const err = document.getElementById('namaError');
+    err.style.display = 'none';
+    inp.classList.remove('is-invalid');
+
+    if (!inp.value.trim()) {
+      inp.classList.add('is-invalid');
+      err.style.display = 'flex';
+      e.preventDefault();
+      return;
+    }
+
+    const btn = document.getElementById('btnSave');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan…';
+  });
+
+  inp.addEventListener('input', function() {
+    this.classList.remove('is-invalid');
+    document.getElementById('namaError').style.display = 'none';
+  });
+</script>
+{% endblock %}

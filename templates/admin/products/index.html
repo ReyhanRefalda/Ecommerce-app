@@ -1,0 +1,463 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block title %}Manajemen Produk — NexShop Admin{% endblock %}
+
+{% block page_title %}Manajemen Produk{% endblock %}
+{% block page_subtitle %}Kelola seluruh data produk yang tersedia di toko{% endblock %}
+
+{% block page_actions %}
+  <a href="{{ url_for('admin_product.create_product') }}" class="btn-admin-primary">
+    <i class="bi bi-plus-lg"></i> Tambah Produk
+  </a>
+{% endblock %}
+
+{% block breadcrumb %}
+  <li class="breadcrumb-item">
+    <a href="{{ url_for('dashboard.index') }}" class="text-muted text-decoration-none">Admin</a>
+  </li>
+  <li class="breadcrumb-item active text-muted">Produk</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .product-thumb {
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    object-fit: cover;
+    background: #F0F0EA;
+    border: 1px solid #E8E8E2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .product-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .product-thumb .no-img {
+    font-size: 1.4rem;
+    color: #C0C0BA;
+  }
+
+  .price-text {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.92rem;
+    color: #0A0A0A;
+  }
+
+  .stock-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    font-family: var(--font-display);
+  }
+  .stock-ok     { background: #DCFCE7; color: #166534; }
+  .stock-low    { background: #FEF9C3; color: #854D0E; }
+  .stock-empty  { background: #FEE2E2; color: #991B1B; }
+
+  .action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 7px;
+    border: 1.5px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    text-decoration: none;
+    transition: all 0.15s;
+    cursor: pointer;
+    background: none;
+  }
+  .action-btn-view  { border-color: #E0E0D8; color: #555; }
+  .action-btn-view:hover  { background: #F5F5F0; color: #0A0A0A; border-color: #C0C0BA; }
+  .action-btn-edit  { border-color: #BFDBFE; color: #2563EB; }
+  .action-btn-edit:hover  { background: #EFF6FF; color: #1D4ED8; }
+  .action-btn-del   { border-color: #FECACA; color: #DC2626; }
+  .action-btn-del:hover   { background: #FEF2F2; color: #B91C1C; }
+
+  .search-input-wrap {
+    position: relative;
+    max-width: 320px;
+    width: 100%;
+  }
+  .search-input-wrap .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #AAA;
+    font-size: 0.9rem;
+    pointer-events: none;
+  }
+  .search-input-wrap input {
+    padding-left: 36px !important;
+    background: #FAFAF8;
+    border: 1.5px solid #E8E8E2;
+    border-radius: 9px;
+    height: 38px;
+    font-size: 0.875rem;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+  }
+  .search-input-wrap input:focus {
+    outline: none;
+    border-color: #0A0A0A;
+    box-shadow: 0 0 0 3px rgba(10,10,10,0.06);
+    background: #fff;
+  }
+
+  .filter-select {
+    height: 38px;
+    border: 1.5px solid #E8E8E2;
+    border-radius: 9px;
+    font-size: 0.875rem;
+    padding: 0 12px;
+    background: #FAFAF8;
+    color: #333;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  .filter-select:focus {
+    outline: none;
+    border-color: #0A0A0A;
+    box-shadow: 0 0 0 3px rgba(10,10,10,0.06);
+  }
+
+  .table-empty {
+    padding: 64px 24px;
+    text-align: center;
+  }
+  .table-empty .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    opacity: 0.25;
+  }
+  .table-empty h6 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    color: #333;
+    margin-bottom: 6px;
+  }
+  .table-empty p {
+    font-size: 0.85rem;
+    color: #888;
+    margin: 0;
+  }
+
+  /* Pagination */
+  .pagination-custom .page-link {
+    border: 1.5px solid #E8E8E2;
+    color: #444;
+    border-radius: 7px !important;
+    margin: 0 2px;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.82rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+    transition: all 0.15s;
+    padding: 0;
+  }
+  .pagination-custom .page-link:hover {
+    background: #F5F5F0;
+    border-color: #C0C0BA;
+    color: #0A0A0A;
+    box-shadow: none;
+  }
+  .pagination-custom .page-item.active .page-link {
+    background: #0A0A0A;
+    border-color: #0A0A0A;
+    color: #E8FF47;
+  }
+  .pagination-custom .page-item.disabled .page-link {
+    opacity: 0.4;
+    background: transparent;
+  }
+
+  /* Row number */
+  .row-num {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: #AAA;
+    width: 28px;
+    text-align: center;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="admin-card">
+
+  <!-- ── Toolbar ── -->
+  <div class="admin-card-header flex-wrap gap-3">
+    <div class="d-flex align-items-center gap-3 flex-wrap">
+      <!-- Search -->
+      <form method="GET" action="{{ url_for('admin_product.products') }}" class="d-flex gap-2 align-items-center flex-wrap">
+        <div class="search-input-wrap">
+          <i class="bi bi-search search-icon"></i>
+          <input
+            type="text"
+            name="search"
+            placeholder="Cari nama produk…"
+            value="{{ request.args.get('search', '') }}"
+          />
+        </div>
+
+        <!-- Filter stok -->
+        <select name="stock_filter" class="filter-select">
+          <option value="">Semua Stok</option>
+          <option value="ok"    {{ 'selected' if request.args.get('stock_filter') == 'ok' }}>Stok Normal</option>
+          <option value="low"   {{ 'selected' if request.args.get('stock_filter') == 'low' }}>Stok Rendah</option>
+        </select>
+
+        <button type="submit" class="btn-admin-primary btn-admin-sm">
+          <i class="bi bi-funnel"></i> Filter
+        </button>
+
+        {% if request.args.get('search') or request.args.get('stock_filter') %}
+        <a href="{{ url_for('admin_product.products') }}" class="btn-admin-sm"
+           style="border: 1.5px solid #E8E8E2; border-radius: 7px; padding: 5px 12px; color: #666; font-size: 0.8rem; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; font-family: var(--font-display); font-weight: 600;">
+          <i class="bi bi-x"></i> Reset
+        </a>
+        {% endif %}
+      </form>
+    </div>
+
+    <!-- Info count -->
+    <span style="font-size: 0.8rem; color: #888; white-space: nowrap;">
+      <strong style="color: #0A0A0A; font-family: var(--font-display);">
+        {{ products|length if products else 0 }}
+      </strong> produk ditemukan
+    </span>
+  </div>
+
+  <!-- ── Table ── -->
+  <div class="table-responsive">
+    <table class="table admin-table mb-0">
+      <thead>
+        <tr>
+          <th style="width: 48px;">#</th>
+          <th style="width: 72px;">Foto</th>
+          <th>Nama Produk</th>
+          <th style="width: 140px;">Harga</th>
+          <th style="width: 110px;">Stok</th>
+          <th style="width: 150px;">Dibuat</th>
+          <th style="width: 120px; text-align: center;">Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if products %}
+          {% for product in products %}
+          <tr>
+            <!-- No -->
+            <td><span class="row-num">{{ loop.index }}</span></td>
+
+            <!-- Foto -->
+            <td>
+              <div class="product-thumb">
+                {% if product.gambar %}
+                  <img
+                    src="{{ url_for('static', filename='uploads/' + product.gambar) }}"
+                    alt="{{ product.nama_produk }}"
+                  />
+                {% else %}
+                  <span class="no-img d-flex align-items-center justify-content-center w-100 h-100">
+                    <i class="bi bi-image"></i>
+                  </span>
+                {% endif %}
+              </div>
+            </td>
+
+            <!-- Nama -->
+            <td>
+              <div style="font-weight: 600; font-size: 0.9rem; color: #0A0A0A; margin-bottom: 2px; max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                {{ product.nama_produk }}
+              </div>
+              {% if product.deskripsi %}
+              <div style="font-size: 0.75rem; color: #888; max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                {{ product.deskripsi[:60] }}{% if product.deskripsi|length > 60 %}…{% endif %}
+              </div>
+              {% endif %}
+            </td>
+
+            <!-- Harga -->
+            <td>
+              <span class="price-text">Rp {{ "{:,.0f}".format(product.harga) }}</span>
+            </td>
+
+            <!-- Stok -->
+            <td>
+              {% if product.stok == 0 %}
+                <span class="stock-badge stock-empty"><i class="bi bi-x-circle-fill"></i> Habis</span>
+              {% elif product.stok <= 5 %}
+                <span class="stock-badge stock-low"><i class="bi bi-exclamation-circle-fill"></i> {{ product.stok }}</span>
+              {% else %}
+                <span class="stock-badge stock-ok"><i class="bi bi-check-circle-fill"></i> {{ product.stok }}
+              {% endif %}
+            </td>
+
+            <!-- Dibuat -->
+            <td style="font-size: 0.8rem; color: #888;">
+              {% if product.created_at %}
+                <div style="font-weight: 500; color: #555;">{{ product.created_at.strftime('%d %b %Y') }}</div>
+                <div style="font-size: 0.72rem;">{{ product.created_at.strftime('%H:%M') }} WIB</div>
+              {% else %}
+                <span style="color: #CCC;">—</span>
+              {% endif %}
+            </td>
+
+            <!-- Aksi -->
+            <td>
+              <div class="d-flex align-items-center justify-content-center gap-1">
+                <!-- Detail -->
+                <a href="{{ url_for('admin_product.detail_product', id=product.id) }}"
+                   class="action-btn action-btn-view"
+                   title="Lihat Detail">
+                  <i class="bi bi-eye"></i>
+                </a>
+
+                <!-- Edit -->
+                <a href="{{ url_for('admin_product.edit_product', id=product.id) }}"
+                   class="action-btn action-btn-edit"
+                   title="Edit Produk">
+                  <i class="bi bi-pencil"></i>
+                </a>
+
+                <!-- Delete -->
+                <button
+                  class="action-btn action-btn-del"
+                  title="Hapus Produk"
+                  onclick="confirmDelete('{{ product.id }}', '{{ product.nama_produk }}')"
+                  type="button">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+
+        {% else %}
+          <tr>
+            <td colspan="7">
+              <div class="table-empty">
+                <div class="empty-icon"><i class="bi bi-box-seam"></i></div>
+                <h6>Belum ada produk</h6>
+                <p>Mulai dengan menambahkan produk per  a Anda.</p>
+                <a href="{{ url_for('admin_product.create_product') }}" class="btn-admin-primary mt-3 d-inline-flex">
+                  <i class="bi bi-plus-lg"></i> Tambah Produk
+                </a>
+              </div>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ── Footer: info + pagination ── -->
+  {% if products %}
+  <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 px-4 py-3"
+       style="border-top: 1px solid #F0F0EA;">
+    <span style="font-size: 0.8rem; color: #888;">
+      Menampilkan
+      <strong style="color: #333; font-family: var(--font-display);">{{ products|length }}</strong>
+      produk
+    </span>
+
+    <!-- Pagination placeholder — ganti dengan Flask-SQLAlchemy pagination -->
+    <nav>
+      <ul class="pagination pagination-custom mb-0">
+        <li class="page-item disabled">
+          <a class="page-link" href="#"><i class="bi bi-chevron-left" style="font-size: 0.7rem;"></i></a>
+        </li>
+        <li class="page-item active"><a class="page-link" href="#">1</a></li>
+        <li class="page-item"><a class="page-link" href="#">2</a></li>
+        <li class="page-item"><a class="page-link" href="#">3</a></li>
+        <li class="page-item">
+          <a class="page-link" href="#"><i class="bi bi-chevron-right" style="font-size: 0.7rem;"></i></a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- ════════════════════════════════════════
+     DELETE MODAL
+════════════════════════════════════════ -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+    <div class="modal-content border-0" style="border-radius: 16px; overflow: hidden;">
+
+      <div class="modal-body p-4 text-center">
+        <!-- Icon -->
+        <div style="width: 64px; height: 64px; background: #FEE2E2; border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 1.8rem; color: #DC2626;">
+          <i class="bi bi-trash3-fill"></i>
+        </div>
+
+        <h5 style="font-family: var(--font-display); font-weight: 700; margin-bottom: 8px; color: #0A0A0A;">Hapus Produk?</h5>
+        <p style="font-size: 0.875rem; color: #666; margin-bottom: 6px;">Anda akan menghapus produk:</p>
+        <p id="deleteProductName" style="font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; color: #0A0A0A; background: #F5F5F0; padding: 8px 16px; border-radius: 8px; margin-bottom: 20px;"></p>
+        <p style="font-size: 0.8rem; color: #DC2626; margin-bottom: 24px;">
+          <i class="bi bi-exclamation-triangle-fill me-1"></i>
+          Tindakan ini tidak dapat dibatalkan.
+        </p>
+
+        <div class="d-flex gap-2">
+          <button type="button" class="btn w-50" data-bs-dismiss="modal"
+            style="border: 1.5px solid #E8E8E2; border-radius: 9px; font-family: var(--font-display); font-weight: 600; font-size: 0.875rem; padding: 10px;">
+            Batal
+          </button>
+          <form id="deleteForm" method="POST" class="w-50 m-0">
+            <button type="submit"
+              style="width: 100%; background: #DC2626; color: #fff; border: none; border-radius: 9px; font-family: var(--font-display); font-weight: 700; font-size: 0.875rem; padding: 10px; cursor: pointer;">
+              <i class="bi bi-trash3 me-1"></i> Hapus
+            </button>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  function confirmDelete(productId, productName) {
+    document.getElementById('deleteProductName').textContent = productName;
+    document.getElementById('deleteForm').action =
+        `/admin/product/delete/${productId}`;
+
+    const modal = new bootstrap.Modal(
+        document.getElementById('deleteModal')
+    );
+    modal.show();
+}
+
+  // Live search highlight
+  const searchInput = document.querySelector('input[name="search"]');
+  if (searchInput) {
+    searchInput.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') this.closest('form').submit();
+    });
+  }
+</script>
+{% endblock %}

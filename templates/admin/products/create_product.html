@@ -1,0 +1,644 @@
+{% extends 'layouts/admin_base.html' %}
+
+{% block title %}Tambah Produk — NexShop Admin{% endblock %}
+
+{% block page_title %}Tambah Produk Baru{% endblock %}
+{% block page_subtitle %}Isi informasi produk yang ingin ditambahkan ke katalog{% endblock %}
+
+{% block breadcrumb %}
+  <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}" class="text-muted text-decoration-none">Admin</a></li>
+  <li class="breadcrumb-item"><a href="{{ url_for('admin_product.products') }}" class="text-muted text-decoration-none">Produk</a></li>
+  <li class="breadcrumb-item active text-muted">Tambah</li>
+{% endblock %}
+
+{% block page_actions %}
+  <a href="{{ url_for('admin_product.products') }}"
+     style="border: 1.5px solid #E8E8E2; border-radius: 9px; padding: 9px 16px; font-family: var(--font-display); font-weight: 600; font-size: 0.85rem; color: #444; text-decoration: none; display: inline-flex; align-items: center; gap: 7px; background: #fff; transition: all 0.15s;">
+    <i class="bi bi-arrow-left"></i> Kembali
+  </a>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ── Upload zone ── */
+  .upload-zone {
+    border: 2px dashed #D8D8D2;
+    border-radius: 14px;
+    background: #FAFAF8;
+    padding: 32px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .upload-zone:hover,
+  .upload-zone.drag-over {
+    border-color: #0A0A0A;
+    background: #F5F5F0;
+  }
+  .upload-zone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+  .upload-icon {
+    width: 56px;
+    height: 56px;
+    background: #EEEEE8;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: #888;
+    margin: 0 auto 12px;
+  }
+  .upload-zone h6 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: #333;
+    margin-bottom: 4px;
+  }
+  .upload-zone p {
+    font-size: 0.78rem;
+    color: #AAA;
+    margin: 0;
+  }
+
+  /* ── Image preview ── */
+  .img-preview-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1/1;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #F0F0EA;
+    border: 1.5px solid #E8E8E2;
+    display: none;
+  }
+  .img-preview-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .img-preview-wrap .remove-img {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    background: rgba(220, 38, 38, 0.9);
+    color: #fff;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    transition: background 0.15s;
+  }
+  .img-preview-wrap .remove-img:hover { background: #B91C1C; }
+
+  /* ── Form field ── */
+  .field-wrap { margin-bottom: 22px; }
+
+  .form-input {
+    width: 100%;
+    border: 1.5px solid #E8E8E2;
+    border-radius: 9px;
+    padding: 11px 14px;
+    font-size: 0.9rem;
+    font-family: var(--font-body);
+    background: #fff;
+    color: #0A0A0A;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  .form-input:focus {
+    border-color: #0A0A0A;
+    box-shadow: 0 0 0 3px rgba(10,10,10,0.07);
+  }
+  .form-input.is-invalid {
+    border-color: #DC2626;
+    box-shadow: 0 0 0 3px rgba(220,38,38,0.07);
+  }
+  .form-input.is-valid {
+    border-color: #16A34A;
+  }
+  textarea.form-input {
+    resize: vertical;
+    min-height: 110px;
+  }
+
+  .field-label {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.82rem;
+    letter-spacing: 0.01em;
+    color: #0A0A0A;
+    margin-bottom: 7px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .field-label .req { color: #DC2626; }
+  .field-hint {
+    font-size: 0.75rem;
+    color: #AAA;
+    margin-top: 5px;
+  }
+  .invalid-text {
+    font-size: 0.78rem;
+    color: #DC2626;
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* ── Input group (Rp prefix) ── */
+  .input-prefix-wrap {
+    display: flex;
+    align-items: stretch;
+  }
+  .input-prefix {
+    background: #F5F5F0;
+    border: 1.5px solid #E8E8E2;
+    border-right: none;
+    border-radius: 9px 0 0 9px;
+    padding: 0 14px;
+    display: flex;
+    align-items: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #666;
+    white-space: nowrap;
+  }
+  .input-prefix-wrap .form-input {
+    border-radius: 0 9px 9px 0;
+    border-left: none;
+    flex: 1;
+  }
+  .input-prefix-wrap .form-input:focus {
+    border-left: none;
+  }
+
+  /* ── Char counter ── */
+  .char-count {
+    font-size: 0.72rem;
+    color: #AAA;
+    text-align: right;
+    margin-top: 4px;
+  }
+
+  /* ── Save button ── */
+  .btn-save {
+    background: #0A0A0A;
+    color: #E8FF47;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 28px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.18s;
+  }
+  .btn-save:hover {
+    background: #222;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 20px rgba(10,10,10,0.15);
+  }
+  .btn-save:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* ── Section divider ── */
+  .form-section-title {
+    font-family: var(--font-display);
+    font-weight: 800;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #AAA;
+    margin-bottom: 16px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #F0F0EA;
+  }
+  .cat-select-wrap { position: relative; }
+  .cat-select-wrap .select-icon { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#888; font-size:0.9rem; pointer-events:none; z-index:1; }
+  .form-select-custom {
+    width: 100%;
+    border: 1.5px solid #E8E8E2;
+    border-radius: 9px;
+    padding: 11px 14px 11px 38px;
+    font-size: 0.9rem;
+    font-family: var(--font-body);
+    background: #fff;
+    color: #0A0A0A;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16'%3E%3Cpath fill='%23888' d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+</style>
+{% endblock %}
+
+{% block content %}
+
+<form
+  action="{{ url_for('admin_product.create_product') }}"
+  method="POST"
+  enctype="multipart/form-data"
+  id="createForm"
+  novalidate
+>
+
+  <div class="row g-4">
+
+    <!-- ════════════════════════════════
+         LEFT: Main Info
+    ════════════════════════════════ -->
+    <div class="col-lg-8">
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h6><i class="bi bi-info-circle me-2" style="color: #888;"></i>Informasi Produk</h6>
+        </div>
+        <div class="p-4">
+
+          <p class="form-section-title">Detail Utama</p>
+
+          <!-- Nama Produk -->
+          <div class="field-wrap">
+            <label class="field-label" for="name">
+              Nama Produk <span class="req">*</span>
+            </label>
+            <input
+              type="text"
+              id="name"
+              name="nama_produk"
+              class="form-input"
+              placeholder="Contoh: Headphone Bluetooth Pro X500"
+              maxlength="100"
+              required
+              value="{{ request.form.get('nama_produk', '') }}"
+              oninput="updateCharCount(this, 'nameCount', 100)"
+            />
+            <div class="d-flex justify-content-between align-items-center mt-1">
+              <div class="invalid-text d-none" id="nameError">
+                <i class="bi bi-exclamation-circle-fill"></i> Nama produk wajib diisi
+              </div>
+              <div class="char-count ms-auto" id="nameCount">0 / 100</div>
+            </div>
+          </div>
+
+          <!-- Deskripsi -->
+          <div class="field-wrap">
+            <label class="field-label" for="description">
+              Deskripsi Produk
+            </label>
+            <textarea
+              id="description"
+              name="deskripsi"
+              class="form-input"
+              placeholder="Deskripsikan produk ini: fitur, bahan, kegunaan, dan informasi penting lainnya…"
+              maxlength="1000"
+              rows="5"
+              oninput="updateCharCount(this, 'descCount', 1000)"
+            >{{ request.form.get('deskripsi', '') }}</textarea>
+            <div class="char-count" id="descCount">0 / 1000</div>
+          </div>
+
+
+                    <div class="field-wrap">
+            <label class="field-label" for="category_id">
+              <i class="bi bi-tags" style="color:#888;"></i>
+              Kategori Produk
+            </label>
+            <div class="cat-select-wrap">
+              <i class="bi bi-tag-fill select-icon"></i>
+              <select
+                id="category_id"
+                name="category_id"
+                class="form-select-custom"
+              >
+                <option value="">— Pilih Kategori (Opsional) —</option>
+                {% if categories %}
+                  {% for category in categories %}
+                    <option
+                      value="{{ category.id }}"
+                      {{ 'selected' if request.form.get('category_id') == category.id|string }}
+                    >
+                      {{ category.nama_kategori }}
+                    </option>
+                  {% endfor %}
+                {% endif %}
+              </select>
+            </div>
+
+            {% if not categories %}
+              <div class="no-cat-warn">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                Belum ada kategori. <a href="{{ url_for('category_admin.create') }}" style="color:#854D0E; font-weight:700;">Tambah kategori dahulu →</a>
+              </div>
+            {% else %}
+              <div class="field-hint">
+                Opsional. <a href="{{ url_for('category_admin.index') }}" style="color:#2563EB; font-family:var(--font-display); font-weight:600;">Kelola kategori →</a>
+              </div>
+            {% endif %}
+          </div>
+
+
+          <p class="form-section-title">Harga &amp; Stok</p>
+
+          <div class="row g-3">
+            <!-- Harga -->
+            <div class="col-md-6">
+              <div class="field-wrap mb-0">
+                <label class="field-label" for="price">
+                  Harga Jual <span class="req">*</span>
+                </label>
+                <div class="input-prefix-wrap">
+                  <span class="input-prefix">Rp</span>
+                  <input
+                    type="number"
+                    id="price"
+                    name="harga"
+                    class="form-input"
+                    placeholder="0"
+                    min="0"
+                    step="100"
+                    required
+                    value="{{ request.form.get('harga', '') }}"
+                  />
+                </div>
+                <div class="invalid-text d-none" id="priceError">
+                  <i class="bi bi-exclamation-circle-fill"></i> Harga wajib diisi dan harus lebih dari 0
+                </div>
+              </div>
+            </div>
+
+            <!-- Stok -->
+            <div class="col-md-6">
+              <div class="field-wrap mb-0">
+                <label class="field-label" for="stock">
+                  Jumlah Stok <span class="req">*</span>
+                </label>
+                <input
+                  type="number"
+                  id="stock"
+                  name="stok"
+                  class="form-input"
+                  placeholder="0"
+                  min="0"
+                  required
+                  value="{{ request.form.get('stok', '') }}"
+                />
+                <div class="invalid-text d-none" id="stockError">
+                  <i class="bi bi-exclamation-circle-fill"></i> Stok wajib diisi
+                </div>
+                <div class="field-hint">Stok ≤ 5 akan ditandai sebagai "Rendah"</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════
+         RIGHT: Image Upload
+    ════════════════════════════════ -->
+    <div class="col-lg-4">
+      <div class="admin-card">
+        <div class="admin-card-header">
+          <h6><i class="bi bi-image me-2" style="color: #888;"></i>Foto Produk</h6>
+        </div>
+        <div class="p-4">
+
+          <!-- Preview -->
+          <div class="img-preview-wrap mb-3" id="previewWrap">
+            <img id="previewImg" src="" alt="Preview"/>
+            <button type="button" class="remove-img" onclick="removeImage()" title="Hapus foto">
+              <i class="bi bi-x"></i>
+            </button>
+          </div>
+
+          <!-- Drop zone -->
+          <div class="upload-zone" id="uploadZone">
+            <input
+              type="file"
+              id="image"
+              name="gambar"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              onchange="handleImagePreview(this)"
+            />
+            <div class="upload-icon"><i class="bi bi-cloud-upload"></i></div>
+            <h6>Klik atau drag foto di sini</h6>
+            <p>JPG, PNG, WebP — Maks. 2 MB</p>
+          </div>
+
+          <div class="field-hint mt-2">
+            <i class="bi bi-info-circle me-1"></i>
+            Gunakan foto persegi untuk hasil terbaik.
+          </div>
+          <div class="invalid-text d-none mt-1" id="imageError">
+            <i class="bi bi-exclamation-circle-fill"></i>
+            <span id="imageErrorMsg">Format tidak didukung</span>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Tips card -->
+      <div class="admin-card mt-3">
+        <div class="admin-card-header">
+          <h6><i class="bi bi-lightbulb me-2" style="color: #F59E0B;"></i>Tips Produk Bagus</h6>
+        </div>
+        <div class="p-3">
+          <ul style="font-size: 0.8rem; color: #666; line-height: 1.9; margin: 0; padding-left: 16px;">
+            <li>Nama produk jelas dan spesifik</li>
+            <li>Harga kompetitif dan akurat</li>
+            <li>Foto produk dengan pencahayaan baik</li>
+            <li>Deskripsi lengkap membantu pelanggan</li>
+            <li>Update stok secara rutin</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /row -->
+
+  <!-- ── Action buttons ── -->
+  <div class="d-flex align-items-center justify-content-between mt-4 pt-2"
+       style="border-top: 1px solid #EAEAE4;">
+    <a href="{{ url_for('admin_product.products') }}"
+       style="font-family: var(--font-display); font-weight: 600; font-size: 0.875rem; color: #666; text-decoration: none; display: inline-flex; align-items: center; gap: 6px;">
+      <i class="bi bi-arrow-left"></i> Kembali ke Daftar
+    </a>
+    <div class="d-flex gap-2">
+      <button type="reset" onclick="resetForm()"
+        style="border: 1.5px solid #E8E8E2; border-radius: 9px; padding: 10px 20px; font-family: var(--font-display); font-weight: 600; font-size: 0.875rem; color: #555; background: #fff; cursor: pointer; display: inline-flex; align-items: center; gap: 7px;">
+        <i class="bi bi-arrow-counterclockwise"></i> Reset
+      </button>
+      <button type="submit" class="btn-save" id="btnSave">
+        <i class="bi bi-floppy"></i> Simpan Produk
+      </button>
+    </div>
+  </div>
+
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // ── Character counter ──────────────────
+  function updateCharCount(el, countId, max) {
+    const len = el.value.length;
+    document.getElementById(countId).textContent = `${len} / ${max}`;
+  }
+
+  // Init counters
+  ['name', 'description'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      const max = id === 'name' ? 100 : 1000;
+      const countId = id === 'name' ? 'nameCount' : 'descCount';
+      updateCharCount(el, countId, max);
+    }
+  });
+
+  // ── Image preview ──────────────────────
+  function handleImagePreview(input) {
+    const file = input.files[0];
+    const errorEl = document.getElementById('imageError');
+    const errorMsg = document.getElementById('imageErrorMsg');
+
+    errorEl.classList.add('d-none');
+
+    if (!file) return;
+
+    // Validate type
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      errorMsg.textContent = 'Format tidak didukung. Gunakan JPG, PNG, atau WebP.';
+      errorEl.classList.remove('d-none');
+      input.value = '';
+      return;
+    }
+
+    // Validate size (2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      errorMsg.textContent = 'Ukuran file terlalu besar. Maks. 2 MB.';
+      errorEl.classList.remove('d-none');
+      input.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('previewImg').src = e.target.result;
+      document.getElementById('previewWrap').style.display = 'block';
+      document.getElementById('uploadZone').style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function removeImage() {
+    document.getElementById('image').value = '';
+    document.getElementById('previewImg').src = '';
+    document.getElementById('previewWrap').style.display = 'none';
+    document.getElementById('uploadZone').style.display = 'block';
+  }
+
+  // Drag & drop
+  const zone = document.getElementById('uploadZone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    const input = document.getElementById('image');
+    if (e.dataTransfer.files.length) {
+      input.files = e.dataTransfer.files;
+      handleImagePreview(input);
+    }
+  });
+
+  // ── Client-side validation ─────────────
+  document.getElementById('createForm').addEventListener('submit', function(e) {
+    let valid = true;
+
+    const name  = document.getElementById('name');
+    const price = document.getElementById('price');
+    const stock = document.getElementById('stock');
+
+    // Reset
+    ['name','price','stock'].forEach(id => {
+      document.getElementById(id).classList.remove('is-invalid');
+      document.getElementById(id + 'Error').classList.add('d-none');
+    });
+
+    if (!name.value.trim()) {
+      name.classList.add('is-invalid');
+      document.getElementById('nameError').classList.remove('d-none');
+      valid = false;
+    }
+    if (!price.value || parseFloat(price.value) < 0) {
+      price.classList.add('is-invalid');
+      document.getElementById('priceError').classList.remove('d-none');
+      valid = false;
+    }
+    if (stock.value === '' || parseInt(stock.value) < 0) {
+      stock.classList.add('is-invalid');
+      document.getElementById('stockError').classList.remove('d-none');
+      valid = false;
+    }
+
+    if (!valid) {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      const btn = document.getElementById('btnSave');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Menyimpan…';
+    }
+  });
+
+  // ── Reset form ─────────────────────────
+  function resetForm() {
+    removeImage();
+    ['nameCount','descCount'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = '0 / ' + (id === 'nameCount' ? '100' : '1000');
+    });
+    ['name','price','stock'].forEach(id => {
+      document.getElementById(id).classList.remove('is-invalid', 'is-valid');
+      document.getElementById(id + 'Error').classList.add('d-none');
+    });
+  }
+
+  // ── Number formatting display ──────────
+  document.getElementById('price').addEventListener('input', function() {
+    if (parseFloat(this.value) < 0) this.value = 0;
+  });
+  document.getElementById('stock').addEventListener('input', function() {
+    if (parseInt(this.value) < 0) this.value = 0;
+  });
+</script>
+{% endblock %}
